@@ -1,29 +1,64 @@
-import { Hono } from "hono";
-import { z } from "zod";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { createCustomer, findCustomerByPhone } from "../db";
 import { normalizePhone } from "../services/phone";
 import { signToken } from "../services/token";
 import type { Env } from "../types";
 
-const loginSchema = z.object({
-  name: z.string().trim().min(1),
-  phone: z.string(),
+const customerSchema = z.object({
+  id: z.number().openapi({ example: 1 }),
+  name: z.string().openapi({ example: "Ale" }),
+  phone: z.string().openapi({ example: "+393331234567" }),
 });
 
-const login = new Hono<{ Bindings: Env }>();
+const errorSchema = z.object({ error: z.string().openapi({ example: "invalid_phone" }) });
 
-login.post("/login", async (c) => {
-  const body = await c.req.json().catch(() => null);
-  const parsed = loginSchema.safeParse(body);
-  if (!parsed.success) return c.json({ error: "invalid_payload" }, 400);
+const loginRoute = createRoute({
+  method: "post",
+  path: "/login",
+  tags: ["Auth"],
+  summary: "Login o registrazione cliente",
+  description:
+    "Login semplice con nome + numero di telefono, senza OTP (vedi PLAN.md). Se il telefono non è mai stato visto, crea un nuovo cliente; altrimenti riusa quello esistente.",
+  request: {
+    body: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: z.object({
+            name: z.string().min(1).openapi({ example: "Ale" }),
+            phone: z.string().openapi({ example: "3331234567", description: "Numero mobile italiano, in qualsiasi formato" }),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Login riuscito: usa il token come Bearer nelle richieste successive",
+      content: {
+        "application/json": {
+          schema: z.object({ token: z.string(), customer: customerSchema }),
+        },
+      },
+    },
+    400: {
+      description: "Payload non valido o numero di telefono non riconosciuto come mobile italiano",
+      content: { "application/json": { schema: errorSchema } },
+    },
+  },
+});
 
-  const phone = normalizePhone(parsed.data.phone);
+const login = new OpenAPIHono<{ Bindings: Env }>();
+
+login.openapi(loginRoute, async (c) => {
+  const { name, phone: rawPhone } = c.req.valid("json");
+  const phone = normalizePhone(rawPhone);
   if (!phone) return c.json({ error: "invalid_phone" }, 400);
 
-  const customer = (await findCustomerByPhone(c.env.DB, phone)) ?? (await createCustomer(c.env.DB, parsed.data.name, phone));
+  const customer = (await findCustomerByPhone(c.env.DB, phone)) ?? (await createCustomer(c.env.DB, name, phone));
 
   const token = await signToken(customer.id, c.env.AUTH_SECRET);
-  return c.json({ token, customer: { id: customer.id, name: customer.name, phone: customer.phone } });
+  return c.json({ token, customer: { id: customer.id, name: customer.name, phone: customer.phone } }, 200);
 });
 
 export default login;
