@@ -32,12 +32,10 @@ Oggi l'unica cosa "viva" è il backend (`api/`), testabile in locale sul tuo com
 ```bash
 cd api
 npm install
-cp .dev.vars.example .dev.vars
-npx wrangler d1 execute ale-style-loyalty --local --file=schema.sql
 npm run dev
 ```
 
-Poi apri **http://localhost:8787/docs** nel browser: è una pagina interattiva (Swagger) dove puoi vedere e provare ogni endpoint dell'API senza scrivere codice — utile per capire cosa fa il backend senza leggere il codice sorgente. Dettagli e comandi completi in [api/README.md](api/README.md).
+`npm run dev` prepara da solo tutto il necessario (segreto locale, dati di test) — non servono altri comandi manuali. Poi apri **http://localhost:8787/docs** nel browser: è una pagina interattiva (Swagger) dove puoi vedere e provare ogni endpoint dell'API senza scrivere codice — utile per capire cosa fa il backend senza leggere il codice sorgente. Dettagli e comandi completi in [api/README.md](api/README.md).
 
 ## Struttura del repo
 

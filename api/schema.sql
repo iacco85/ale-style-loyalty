@@ -1,29 +1,29 @@
-CREATE TABLE customers (
+CREATE TABLE IF NOT EXISTS customers (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
   phone TEXT NOT NULL UNIQUE,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
-CREATE TABLE points_log (
+CREATE TABLE IF NOT EXISTS points_log (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   customer_id INTEGER NOT NULL REFERENCES customers(id),
   delta INTEGER NOT NULL,
   reason TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
-CREATE INDEX idx_points_log_customer ON points_log(customer_id);
+CREATE INDEX IF NOT EXISTS idx_points_log_customer ON points_log(customer_id);
 
-CREATE TABLE offers (
+CREATE TABLE IF NOT EXISTS offers (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   customer_id INTEGER REFERENCES customers(id),
   title TEXT NOT NULL,
   description TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
-CREATE INDEX idx_offers_customer ON offers(customer_id);
+CREATE INDEX IF NOT EXISTS idx_offers_customer ON offers(customer_id);
 
-CREATE TABLE device_tokens (
+CREATE TABLE IF NOT EXISTS device_tokens (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   customer_id INTEGER NOT NULL REFERENCES customers(id),
   token TEXT NOT NULL,
@@ -31,7 +31,7 @@ CREATE TABLE device_tokens (
   UNIQUE (customer_id, token)
 );
 
-CREATE TABLE prizes (
+CREATE TABLE IF NOT EXISTS prizes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   label TEXT NOT NULL,
   type TEXT NOT NULL CHECK (type IN ('discount', 'points', 'none')),
@@ -39,10 +39,10 @@ CREATE TABLE prizes (
   weight INTEGER NOT NULL
 );
 
-CREATE TABLE spins (
+CREATE TABLE IF NOT EXISTS spins (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   customer_id INTEGER NOT NULL REFERENCES customers(id),
   prize_id INTEGER NOT NULL REFERENCES prizes(id),
   spun_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
-CREATE INDEX idx_spins_customer ON spins(customer_id);
+CREATE INDEX IF NOT EXISTS idx_spins_customer ON spins(customer_id);
