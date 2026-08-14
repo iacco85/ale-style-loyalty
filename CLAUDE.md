@@ -13,6 +13,7 @@ Regole del progetto, da rispettare sempre indipendentemente dalla tecnologia:
 - **Funzioni corte e chiare**: se una funzione fa più di una cosa, va spezzata. Un livello di astrazione per funzione, nomi che spiegano il "cosa" senza bisogno di commenti.
 - **Inferenza dei tipi sempre**: non annotare tipi che TypeScript può dedurre da solo (variabili locali, `const` con valore letterale). Annotazioni esplicite solo ai confini: parametri di funzione, valori di ritorno di funzioni esportate/pubbliche, contratti API (request/response).
 - **TDD mandatory sulla business logic**: test scritto *prima* del codice per tutto ciò che è logica di dominio — estrazione pesata della ruota, calcolo punti, regole di eligibilità offerte, cooldown spin. Non serve per componenti UI puramente presentazionali o markup statico.
+- **README.md sempre aggiornato**: ogni sottoprogetto (`api/`, `app/`, `admin/`) ha un proprio `README.md` con comandi (setup, dev, test, deploy), endpoint/funzionalità esposte e stato corrente. Va aggiornato **nello stesso commit** che introduce il cambiamento (nuovo comando, nuovo endpoint, dipendenza aggiunta, comportamento cambiato) — non a posteriori. Il [README.md](README.md) nella root va aggiornato quando cambia lo stato generale del progetto (componente completato, nuovo componente iniziato).
 
 ## Best practice per tecnologia
 
