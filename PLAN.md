@@ -1,0 +1,111 @@
+# App fedeltà "Ale Style" — pilot nativo Android (Capacitor + Vue)
+
+## Contesto
+
+L'utente vuole costruire un'app mobile con tessera fedeltà, notifiche push e offerte personalizzate, pensata in futuro come prodotto white-label da vendere ad altri negozi. Non avendo mai pubblicato un'app mobile, si è deciso di partire da un **pilot reale**: l'app per il salone di parrucchiera della sorella, "Ale Style" (Rimini) — il cui sito attuale (repo `ale-style`, Vue 3 + TS + Vite, deployato su Cloudflare via wrangler) conferma nome, settore e che l'utente ha già familiarità con lo stack Cloudflare.
+
+Decisioni prese nella conversazione:
+- **Nativa, non PWA**: la scarsa scopribilità di "Aggiungi a Home" su iOS è stata giudicata un rischio di adozione troppo alto.
+- **Si parte da Android** (Mac 2013 non aggiornabile → iOS nativo rimandato).
+- **Stack app: Capacitor + Vue 3 + TypeScript** — riusa le competenze già dimostrate nel repo `ale-style`; produce un'app Android vera (APK reale via Play Store in futuro, non una PWA installata).
+- **Progetto separato** dal repo `ale-style` esistente.
+- **Backend proprio, non accoppiato a un vendor**: l'app e il pannello admin devono parlare con una **API nostra**; Firebase (o chiunque altro) resta un dettaglio implementativo nascosto dietro quella API, sostituibile in futuro senza toccare il codice di app/admin.
+- **Serve un pannello admin vero**, non la console Firebase: la sorella non è un'utente tecnica, quindi la gestione di punti e offerte deve avvenire da un'interfaccia semplice pensata per lei.
+
+## Architettura
+
+```
+[App Android (Capacitor+Vue)] ─┐
+                                ├──HTTP──▶ [API su Cloudflare Worker] ──▶ [Cloudflare D1 (SQL)]
+[Admin web (Vue)] ─────────────┘                      │
+                                                        └──▶ [Firebase Cloud Messaging]
+                                                             (solo invio push, isolato in 1 modulo)
+```
+
+- **Backend/API**: **Cloudflare Worker** in TypeScript (stesso ecosistema già usato in `ale-style`, l'utente lo conosce già). Espone endpoint REST propri (`/login`, `/me`, `/offers`, `/device-token`, `/admin/...`) — né l'app né l'admin panel chiamano mai SDK di terzi direttamente.
+- **Storage**: **Cloudflare D1** (SQLite gestito), tabelle `customers`, `points_log`, `offers`. Scelto perché relazionale (si adatta bene a clienti/punti/offerte), incluso nello stesso account Cloudflare, nessun servizio esterno da gestire.
+- **Invio push**: Android richiede obbligatoriamente **Firebase Cloud Messaging** come canale di trasporto (è un vincolo di sistema operativo, non una scelta di vendor — vale anche per chi non usa nessun altro prodotto Firebase, esattamente come iOS richiede APNs). Per rispettare "niente lock-in nel codice applicativo", l'uso di FCM è confinato a **un solo modulo del Worker** (`sendPush()`), mai esposto ad app o admin: se in futuro serve un altro sistema di notifiche (es. per iOS con APNs, o un provider terzo), si cambia solo quel modulo.
+- **App mobile** (Capacitor + Vue + TS): parla solo con la nostra API via `fetch`; usa il plugin `@capacitor/push-notifications` solo per ottenere il token del dispositivo (da mandare alla nostra API) e per mostrare le notifiche ricevute.
+- **Admin web** (Vue + TS, nuovo piccolo progetto o pagina protetta): interfaccia semplice per la sorella — cerca cliente, aggiunge punti, crea un'offerta per un cliente specifico (invia push mirata), manda un'offerta broadcast a tutti.
+
+## Scope del pilot (MVP)
+
+Copre le quattro funzionalità richieste, con un backend reale ma minimo:
+
+1. **Tessera fedeltà**: cliente vede saldo punti nell'app; sorella aggiunge punti da pannello admin.
+2. **Notifiche push**: infrastruttura FCM end-to-end (token, invio, ricezione), ma incapsulata dietro la nostra API.
+3. **Offerte personalizzate**: la sorella crea un'offerta per una cliente specifica dal pannello admin → push mirata automatica.
+4. **Ruota della fortuna**: la cliente può girare **una volta a settimana**; il risultato (sconto, piccolo premio, o "hai perso") è deciso **dal server**, mai dal client, con probabilità pesate per rendere i premi importanti rari. La sorella configura premi/probabilità dal pannello admin.
+
+Semplificazioni deliberate per il pilot (riviste in base al feedback, non più "usa la console Firebase"):
+- **Login clienti semplice**: nome + numero di telefono, senza verifica OTP via SMS (evita costi/complessità di Firebase Phone Auth). Verifica reale aggiungibile in seguito.
+- **Admin panel minimo ma reale**: lista clienti, dettaglio cliente con pulsante "+1 punto" / punti manuali, form "crea offerta". Niente autenticazione sofisticata per l'admin nel pilot (una password condivisa/semplice va bene per iniziare, essendo un solo utente — la sorella).
+
+## Ruota della fortuna
+
+Va trattata come una funzionalità **server-authoritative**: il client non deve mai poter decidere o influenzare l'esito, altrimenti è banale barare (basta guardare/modificare la richiesta). Design:
+
+- **Tabelle D1 aggiuntive**:
+  - `prizes` (id, label, type: `discount` | `points` | `none`, value, weight) — `weight` è il peso relativo nella lotteria; "hai perso" è semplicemente un premio con `type = none` e peso alto.
+  - `spins` (id, customer_id, prize_id, spun_at) — log di ogni tentativo, usato sia per la cronologia sia per far rispettare il cooldown.
+- **Endpoint** `POST /spin`: il Worker verifica lato server se è passata almeno 1 settimana dall'ultimo spin di quel cliente (query su `spins`); se sì, estrae un premio pesato a caso tra `prizes`, lo registra in `spins`, e lo restituisce. Se il cooldown non è scaduto, risponde con l'errore e la data del prossimo spin disponibile.
+- **Endpoint** `GET /spin/status`: dice all'app se la cliente può girare ora o quando potrà farlo di nuovo (per mostrare/nascondere il pulsante "Gira").
+- **Admin**: nuova pagina in `ale-style-admin` per creare/modificare i premi e i relativi pesi (es. "hai perso" peso 70, "-5% prossimo servizio" peso 20, "-15%" peso 8, "trattamento omaggio" peso 2) — così la sorella controlla da sé quanto è facile vincere, senza dover chiedere modifiche al codice.
+- **App**: nuova view `WheelView.vue` con animazione della ruota che si ferma sul premio restituito dal server (l'animazione è solo estetica, il risultato è già deciso).
+
+## Struttura dei nuovi progetti
+
+Due cartelle sibling a `ale-style`:
+
+```
+ale-style-api/                  # Cloudflare Worker
+  src/
+    index.ts                    # routing
+    routes/customers.ts
+    routes/offers.ts
+    routes/spin.ts               # logica ruota della fortuna (server-authoritative)
+    routes/admin.ts
+    push.ts                     # unico punto che parla con FCM
+    db.ts                       # query D1
+  wrangler.jsonc
+  schema.sql                    # definizione tabelle D1 (incl. prizes, spins)
+
+ale-style-app/                  # Capacitor + Vue (Android)
+  src/
+    views/
+      LoginView.vue
+      HomeView.vue               # tessera fedeltà
+      OffersView.vue
+      WheelView.vue               # ruota della fortuna
+    api.ts                       # client per ale-style-api
+    firebase.ts                  # solo init FCM lato client (ricezione token)
+  capacitor.config.ts
+  android/
+
+ale-style-admin/                 # Vue (web), pannello per la sorella
+  src/
+    views/
+      LoginView.vue
+      CustomersView.vue
+      CustomerDetailView.vue     # aggiungi punti, crea offerta
+      PrizesView.vue              # configura premi/probabilità della ruota
+```
+
+## Passi implementativi
+
+1. **Backend**: creare `ale-style-api` come Cloudflare Worker (`wrangler init`), definire schema D1 (`customers`, `points_log`, `offers`, `device_tokens`, `prizes`, `spins`), implementare endpoint REST base (`/login`, `/me`, `/offers`, `/device-token`).
+2. Creare progetto Firebase **solo per Cloud Messaging** (nessun Firestore/Auth lato client), generare service account per mandare push dal Worker; implementare `push.ts` che chiama l'API HTTP v1 di FCM.
+3. Endpoint admin protetti (`/admin/customers`, `/admin/customers/:id/points`, `/admin/customers/:id/offers`, `/admin/broadcast`, `/admin/prizes`) che scrivono su D1 e, per le offerte, invocano `sendPush()`.
+4. Endpoint ruota (`POST /spin`, `GET /spin/status`) con estrazione pesata ed enforcement del cooldown settimanale lato server.
+5. **App mobile**: creare `ale-style-app` (Vite + Vue + TS), aggiungere Capacitor e piattaforma Android (`npx cap add android`), implementare `api.ts` (client fetch verso `ale-style-api`), le view Login/Home/Offers/Wheel, e il plugin `@capacitor/push-notifications` per registrare il token FCM tramite `/device-token`.
+6. **Admin web**: creare `ale-style-admin` (Vue+TS, semplice SPA), pagine Customers/CustomerDetail/Prizes che chiamano gli endpoint `/admin/*`.
+7. Deploy `ale-style-api` su Cloudflare Workers (`wrangler deploy`) e `ale-style-admin` su Cloudflare Pages (stesso account già in uso).
+8. Sync/build Android (`npx cap sync android`), eseguire su telefono Android reale via Android Studio + USB debugging.
+
+## Verifica end-to-end
+
+- Backend: test degli endpoint con `curl`/Postman prima di collegare l'app (login crea cliente in D1, `/admin/.../points` aggiorna il saldo, `/admin/.../offers` crea offerta e devo vedere la chiamata a FCM nei log del Worker).
+- App: `npm run dev` per le view in browser; poi build Android reale sul telefono della sorella via USB debugging (nessun account Play Store richiesto in questa fase).
+- Admin: aprire `ale-style-admin` in browser, aggiungere punti a un cliente di test, creare un'offerta personalizzata e verificare che la notifica arrivi sul telefono Android collegato.
+- Test broadcast: endpoint `/admin/broadcast` → verificare ricezione su più dispositivi di test.
+- Test ruota: chiamare `POST /spin` più volte di fila con lo stesso cliente → deve rifiutare i tentativi prima di 7 giorni; verificare che sull'estrazione ripetuta (es. 100 chiamate di test con cooldown disattivato in un ambiente di prova) la distribuzione dei premi rispetti i pesi configurati.
