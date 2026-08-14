@@ -16,7 +16,7 @@ describe("signToken / verifyToken", () => {
 
   it("rejects a token tampered with after signing", async () => {
     const token = await signToken(42, SECRET);
-    const tampered = token.slice(0, -1) + (token.at(-1) === "a" ? "b" : "a");
+    const tampered = token.replace(/^42\./, "43.");
     expect(await verifyToken(tampered, SECRET)).toBeNull();
   });
 
