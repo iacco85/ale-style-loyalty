@@ -2,7 +2,7 @@
 
 Backend del pilot fedeltà "Ale Style": un Cloudflare Worker (framework [Hono](https://hono.dev)) che espone l'API REST usata dall'app Android e dal pannello admin, con dati su Cloudflare D1 (SQLite gestito). Contesto completo del progetto in [../README.md](../README.md) e [../PLAN.md](../PLAN.md).
 
-Stato attuale: scheletro base (Passo 1 di PLAN.md) — login cliente, saldo punti, offerte, registrazione device token per le push — più `push.ts` (Passo 2), l'unico modulo che parla con Firebase Cloud Messaging via API HTTP v1. Non ancora implementati: endpoint `/admin/*`, ruota della fortuna (`/spin`), deploy su Cloudflare. `push.ts` non è ancora invocato da nessuna route: verrà usato dagli endpoint admin per le offerte personalizzate e il broadcast.
+Stato attuale: login cliente, saldo punti, offerte, registrazione device token per le push (Passo 1), `push.ts` (Passo 2, unico modulo che parla con Firebase Cloud Messaging via API HTTP v1), ed endpoint `/admin/*` protetti da password condivisa (Passo 3) — lista clienti con saldo punti, aggiunta punti, creazione offerta per un cliente singolo o in broadcast (invocano `sendPush()` in modo best-effort: l'offerta resta salvata anche se la push fallisce), CRUD dei premi della ruota. Non ancora implementati: ruota della fortuna (`/spin`), deploy su Cloudflare.
 
 ## Setup
 
@@ -13,7 +13,7 @@ npm run dev
 
 Basta questo: `npm run dev` crea da solo `.dev.vars` (se manca, copiandolo da `.dev.vars.example`) e applica `schema.sql` al D1 locale prima di avviare il server — non serve farlo a mano, e rilanciarlo più volte è sicuro (lo schema usa `CREATE TABLE IF NOT EXISTS`, non fallisce se le tabelle esistono già). Se modifichi `schema.sql`, il cambiamento viene applicato al prossimo `npm run dev` automaticamente.
 
-`.dev.vars` contiene i segreti locali (`AUTH_SECRET`, `FCM_*`): è generato in locale, ignorato da git, non va mai committato. Se vuoi resettare completamente il D1 locale (dati di test compresi), cancella la cartella `.wrangler/` e rilancia `npm run dev`.
+`.dev.vars` contiene i segreti locali (`AUTH_SECRET`, `ADMIN_PASSWORD`, `FCM_*`): è generato in locale, ignorato da git, non va mai committato. Se vuoi resettare completamente il D1 locale (dati di test compresi), cancella la cartella `.wrangler/` e rilancia `npm run dev`.
 
 ### Push notifiche (Firebase Cloud Messaging)
 
@@ -29,7 +29,19 @@ Basta questo: `npm run dev` crea da solo `.dev.vars` (se manca, copiandolo da `.
    `FCM_PRIVATE_KEY` va incollata su una riga sola, lasciando i `\n` letterali così come sono nel json (il codice li converte). Vedi `.dev.vars.example` per il formato esatto.
 3. Firebase Cloud Messaging è gratuito (piano Spark), non serve attivare fatturazione.
 
-`sendPush()` firma un JWT del service account (RS256, Web Crypto — nessuna libreria esterna), lo scambia per un access token OAuth2, e chiama l'API HTTP v1 di FCM. Non è ancora invocato da nessuna route: verrà collegato quando implementiamo gli endpoint admin per offerte personalizzate e broadcast (Passo 3 di PLAN.md).
+`sendPush()` firma un JWT del service account (RS256, Web Crypto — nessuna libreria esterna), lo scambia per un access token OAuth2, e chiama l'API HTTP v1 di FCM. È invocato da `src/services/notifications.ts` quando un endpoint admin crea un'offerta (singola o broadcast): l'invio è best-effort, un fallimento su un device token non blocca gli altri né la creazione dell'offerta.
+
+## Pannello admin (`/admin/*`)
+
+Autenticazione minima per il pilot (un solo utente, la sorella): password condivisa in `ADMIN_PASSWORD`, passata come `Authorization: Bearer <password>` (vedi `src/middleware/adminAuth.ts`, confronto a tempo costante). Non è un token di sessione: è la password stessa, verificata a ogni richiesta.
+
+| Endpoint | Cosa fa |
+| --- | --- |
+| `GET /admin/customers?search=` | Lista clienti con saldo punti calcolato; `search` filtra per nome o telefono |
+| `POST /admin/customers/:id/points` | Aggiunge una riga a `points_log` (`delta` positivo o negativo + `reason` opzionale) |
+| `POST /admin/customers/:id/offers` | Crea un'offerta per quel cliente e invia la push ai suoi device token registrati |
+| `POST /admin/broadcast` | Crea un'offerta broadcast (`customer_id` null, visibile a tutti via `GET /offers`) e invia la push a tutti i device token registrati |
+| `GET /admin/prizes` / `POST /admin/prizes` / `PUT /admin/prizes/:id` | CRUD dei premi della ruota della fortuna (label, tipo, valore, peso) — non ancora usati da `/spin` (Passo 4) |
 
 ## Comandi
 
@@ -50,7 +62,7 @@ Con `npm run dev` attivo:
 
 La documentazione è generata automaticamente dagli stessi schemi Zod usati per validare le richieste (`@hono/zod-openapi`, in ogni file di `src/routes/`): non può disallinearsi dal codice, perché è il codice.
 
-Gli endpoint protetti (`/me`, `/offers`, `/device-token`) richiedono l'header `Authorization: Bearer <token>` ottenuto da `POST /login`. In Swagger UI: pulsante **Authorize** in alto a destra, incolla il token ottenuto da una chiamata a `/login`.
+Gli endpoint cliente (`/me`, `/offers`, `/device-token`) richiedono l'header `Authorization: Bearer <token>` ottenuto da `POST /login`. Gli endpoint `/admin/*` richiedono `Authorization: Bearer <ADMIN_PASSWORD>`. In Swagger UI: pulsante **Authorize** in alto a destra, incolla il token o la password admin.
 
 ## Smoke test manuale
 
@@ -61,6 +73,10 @@ curl -X POST http://localhost:8787/login -H 'Content-Type: application/json' -d 
 curl http://localhost:8787/me -H "Authorization: Bearer <token>"
 curl http://localhost:8787/offers -H "Authorization: Bearer <token>"
 curl -X POST http://localhost:8787/device-token -H "Authorization: Bearer <token>" -H 'Content-Type: application/json' -d '{"token":"fake-fcm-token"}'
+
+curl http://localhost:8787/admin/customers -H "Authorization: Bearer <ADMIN_PASSWORD>"
+curl -X POST http://localhost:8787/admin/customers/1/points -H "Authorization: Bearer <ADMIN_PASSWORD>" -H 'Content-Type: application/json' -d '{"delta":1,"reason":"Taglio"}'
+curl -X POST http://localhost:8787/admin/customers/1/offers -H "Authorization: Bearer <ADMIN_PASSWORD>" -H 'Content-Type: application/json' -d '{"title":"-15% prossimo taglio"}'
 ```
 
 ## Struttura
@@ -71,22 +87,28 @@ src/
   types.ts               # Env (bindings D1/secrets), tipi di dominio
   db.ts                   # query D1 parametrizzate
   push.ts                  # unico punto che parla con FCM (API HTTP v1)
-  middleware/auth.ts       # verifica il Bearer token
+  middleware/
+    auth.ts                 # verifica il Bearer token del cliente
+    adminAuth.ts              # verifica la password admin condivisa
   services/                 # business logic pura, sviluppata TDD (vedi CLAUDE.md)
     base64url.ts              # encode/decode base64url condiviso (token, push)
     phone.ts                 # normalizzazione/validazione numero italiano
     points.ts                 # calcolo saldo punti da points_log
     token.ts                   # firma/verifica token (HMAC-SHA256, stateless)
+    timingSafeEqual.ts         # confronto stringhe a tempo costante (password admin)
+    notifications.ts           # orchestrazione push per offerte singole/broadcast, chiama sendPush()
   routes/                      # createRoute() + handler, un file per endpoint
-schema.sql                      # schema D1 completo (anche tabelle prizes/spins, non ancora usate)
+    admin/                       # customers.ts, broadcast.ts, prizes.ts — endpoint /admin/*
+schema.sql                      # schema D1 completo (anche tabella spins, non ancora usata)
 test/                             # unit test dei services + integrazione delle route
 ```
 
-## Autenticazione cliente
+## Autenticazione
 
-Nessuna tabella sessioni: il token restituito da `/login` è **firmato con HMAC-SHA256** (`AUTH_SECRET`), contiene `customerId` + timestamp, scade dopo 180 giorni. Vedi `src/services/token.ts`.
+- **Cliente**: nessuna tabella sessioni, il token restituito da `/login` è **firmato con HMAC-SHA256** (`AUTH_SECRET`), contiene `customerId` + timestamp, scade dopo 180 giorni. Vedi `src/services/token.ts`.
+- **Admin**: password condivisa (`ADMIN_PASSWORD`) verificata a ogni richiesta con confronto a tempo costante, nessun token/sessione — scelta deliberata per il pilot, un solo utente non tecnico (vedi PLAN.md). Vedi `src/middleware/adminAuth.ts`.
 
 ## Note
 
 - Versioni di `vitest`/`@cloudflare/vitest-pool-workers` tenute all'ultima stabile: `npm audit` deve restare a **0 vulnerabilità**.
-- Per il deploy reale su Cloudflare serve: `wrangler login` (non ancora fatto su questa macchina per l'account personale) + `wrangler d1 create ale-style-loyalty` per ottenere un `database_id` reale da mettere in `wrangler.jsonc` (oggi è un placeholder) + `wrangler secret put AUTH_SECRET`.
+- Per il deploy reale su Cloudflare serve: `wrangler login` (non ancora fatto su questa macchina per l'account personale) + `wrangler d1 create ale-style-loyalty` per ottenere un `database_id` reale da mettere in `wrangler.jsonc` (oggi è un placeholder) + `wrangler secret put AUTH_SECRET` + `wrangler secret put ADMIN_PASSWORD`.

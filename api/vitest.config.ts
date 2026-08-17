@@ -8,6 +8,7 @@ export default defineConfig({
       miniflare: {
         bindings: {
           AUTH_SECRET: "test-secret",
+          ADMIN_PASSWORD: "test-admin-password",
           FCM_PROJECT_ID: "test-project",
           FCM_CLIENT_EMAIL: "test@test.iam.gserviceaccount.com",
           FCM_PRIVATE_KEY: "test-key",

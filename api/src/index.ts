@@ -1,5 +1,8 @@
 import { swaggerUI } from "@hono/swagger-ui";
 import { OpenAPIHono } from "@hono/zod-openapi";
+import broadcast from "./routes/admin/broadcast";
+import adminCustomers from "./routes/admin/customers";
+import prizes from "./routes/admin/prizes";
 import deviceToken from "./routes/deviceToken";
 import login from "./routes/login";
 import me from "./routes/me";
@@ -11,13 +14,16 @@ const app = new OpenAPIHono<{ Bindings: Env }>();
 app.openAPIRegistry.registerComponent("securitySchemes", "Bearer", {
   type: "http",
   scheme: "bearer",
-  description: "Token restituito da POST /login",
+  description: "Token restituito da POST /login per gli endpoint cliente; password admin condivisa per gli endpoint /admin/*",
 });
 
 app.route("/", login);
 app.route("/", me);
 app.route("/", offers);
 app.route("/", deviceToken);
+app.route("/", adminCustomers);
+app.route("/", broadcast);
+app.route("/", prizes);
 
 app.doc("/openapi.json", {
   openapi: "3.0.0",
