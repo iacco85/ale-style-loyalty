@@ -102,6 +102,14 @@ ale-style-admin/                 # Vue (web), pannello per la sorella
 7. Deploy `ale-style-api` su Cloudflare Workers (`wrangler deploy`) e `ale-style-admin` su Cloudflare Pages (stesso account già in uso).
 8. Sync/build Android (`npx cap sync android`), eseguire su telefono Android reale via Android Studio + USB debugging.
 
+## Backlog — Fase 2 (dopo il pilot base)
+
+Idee emerse in fase di progettazione delle offerte, deliberatamente rimandate per non allargare lo scope del pilot: il Passo 3 (endpoint `/admin/*`) resta com'è oggi (offerte manuali create dalla sorella). Vanno fatte "al 100%", ma dopo che il giro base (punti → offerta manuale → push → ruota) funziona end-to-end. Rimandarle non richiede rework di quanto già costruito, a patto di rispettare la nota sotto su `last_visit_at`.
+
+- **Offerta di compleanno**: `ALTER TABLE customers ADD COLUMN birth_date` (nullable, additivo); serve raccogliere la data (campo in più su `/login` o un futuro `PATCH /me`); un cron trigger giornaliero sul Worker (`scheduled()`, nativo Cloudflare) individua chi compie gli anni e genera offerta + push automatica.
+- **Offerta "non viene da un po'" (win-back)**: **non aggiungere una colonna `last_visit_at` su `customers`** — si calcolerebbe da denormalizzare e richiederebbe un backfill da `points_log` per i clienti già esistenti. Meglio calcolare l'ultima visita on-the-fly con `MAX(created_at)` su `points_log` (già ha i timestamp): zero schema, zero migrazione. Servirà una funzione pura `isInactive()` (TDD, regola di eligibilità offerte) + un cron periodico che genera l'offerta.
+- **Programma "porta un'amica"**: nuova tabella `referrals` (referrer_id, referred_id, stato/redeemed_at) — additiva; il flusso di login/signup accetta un codice invito opzionale (cambio additivo, non breaking); serve una regola di eligibilità per sbloccare lo sconto a entrambe le clienti quando la nuova cliente completa la prima visita; è l'unica delle tre che richiede anche superficie UI nuova nell'app (mostrare/condividere il proprio codice invito).
+
 ## Verifica end-to-end
 
 - Backend: test degli endpoint con `curl`/Postman prima di collegare l'app (login crea cliente in D1, `/admin/.../points` aggiorna il saldo, `/admin/.../offers` crea offerta e devo vedere la chiamata a FCM nei log del Worker).
