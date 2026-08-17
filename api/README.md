@@ -2,7 +2,7 @@
 
 Backend del pilot fedeltà "Ale Style": un Cloudflare Worker (framework [Hono](https://hono.dev)) che espone l'API REST usata dall'app Android e dal pannello admin, con dati su Cloudflare D1 (SQLite gestito). Contesto completo del progetto in [../README.md](../README.md) e [../PLAN.md](../PLAN.md).
 
-Stato attuale: **solo lo scheletro base** (Passo 1 di PLAN.md) — login cliente, saldo punti, offerte, registrazione device token per le push. Non ancora implementati: endpoint `/admin/*`, ruota della fortuna (`/spin`), invio push reale via FCM, deploy su Cloudflare.
+Stato attuale: scheletro base (Passo 1 di PLAN.md) — login cliente, saldo punti, offerte, registrazione device token per le push — più `push.ts` (Passo 2), l'unico modulo che parla con Firebase Cloud Messaging via API HTTP v1. Non ancora implementati: endpoint `/admin/*`, ruota della fortuna (`/spin`), deploy su Cloudflare. `push.ts` non è ancora invocato da nessuna route: verrà usato dagli endpoint admin per le offerte personalizzate e il broadcast.
 
 ## Setup
 
@@ -13,7 +13,23 @@ npm run dev
 
 Basta questo: `npm run dev` crea da solo `.dev.vars` (se manca, copiandolo da `.dev.vars.example`) e applica `schema.sql` al D1 locale prima di avviare il server — non serve farlo a mano, e rilanciarlo più volte è sicuro (lo schema usa `CREATE TABLE IF NOT EXISTS`, non fallisce se le tabelle esistono già). Se modifichi `schema.sql`, il cambiamento viene applicato al prossimo `npm run dev` automaticamente.
 
-`.dev.vars` contiene il segreto locale `AUTH_SECRET`: è generato in locale, ignorato da git, non va mai committato. Se vuoi resettare completamente il D1 locale (dati di test compresi), cancella la cartella `.wrangler/` e rilancia `npm run dev`.
+`.dev.vars` contiene i segreti locali (`AUTH_SECRET`, `FCM_*`): è generato in locale, ignorato da git, non va mai committato. Se vuoi resettare completamente il D1 locale (dati di test compresi), cancella la cartella `.wrangler/` e rilancia `npm run dev`.
+
+### Push notifiche (Firebase Cloud Messaging)
+
+`src/push.ts` è l'unico modulo che parla con FCM (vedi CLAUDE.md — nessun SDK Firebase altrove). Per farlo funzionare in locale servono le credenziali del **service account** del progetto Firebase, da mettere in `.dev.vars`:
+
+1. Console Firebase → progetto → ⚙️ Impostazioni progetto → **Account di servizio** → **Genera nuova chiave privata** → scarica il file `.json`.
+2. Copia in `.dev.vars` (mai committato) i tre campi del json:
+   ```
+   FCM_PROJECT_ID=<project_id>
+   FCM_CLIENT_EMAIL=<client_email>
+   FCM_PRIVATE_KEY="<private_key>"
+   ```
+   `FCM_PRIVATE_KEY` va incollata su una riga sola, lasciando i `\n` letterali così come sono nel json (il codice li converte). Vedi `.dev.vars.example` per il formato esatto.
+3. Firebase Cloud Messaging è gratuito (piano Spark), non serve attivare fatturazione.
+
+`sendPush()` firma un JWT del service account (RS256, Web Crypto — nessuna libreria esterna), lo scambia per un access token OAuth2, e chiama l'API HTTP v1 di FCM. Non è ancora invocato da nessuna route: verrà collegato quando implementiamo gli endpoint admin per offerte personalizzate e broadcast (Passo 3 di PLAN.md).
 
 ## Comandi
 
@@ -54,8 +70,10 @@ src/
   index.ts              # app Hono, monta le route, /openapi.json, /docs
   types.ts               # Env (bindings D1/secrets), tipi di dominio
   db.ts                   # query D1 parametrizzate
+  push.ts                  # unico punto che parla con FCM (API HTTP v1)
   middleware/auth.ts       # verifica il Bearer token
   services/                 # business logic pura, sviluppata TDD (vedi CLAUDE.md)
+    base64url.ts              # encode/decode base64url condiviso (token, push)
     phone.ts                 # normalizzazione/validazione numero italiano
     points.ts                 # calcolo saldo punti da points_log
     token.ts                   # firma/verifica token (HMAC-SHA256, stateless)

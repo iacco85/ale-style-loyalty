@@ -1,1 +1,9 @@
 AUTH_SECRET=changeme-local-dev-secret
+
+# Da https://console.firebase.google.com → Impostazioni progetto → Account di servizio
+# → "Genera nuova chiave privata" (scarica un file .json con questi 3 campi).
+# FCM_PRIVATE_KEY: incolla il valore "private_key" del json su una riga sola,
+# lasciando i "\n" letterali così come sono nel file (il codice li converte lui).
+FCM_PROJECT_ID=changeme-firebase-project-id
+FCM_CLIENT_EMAIL=changeme@changeme.iam.gserviceaccount.com
+FCM_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nchangeme\n-----END PRIVATE KEY-----\n"

@@ -19,7 +19,7 @@ Tre componenti, che parlano solo tra loro attraverso un'API scritta da noi (ness
 
 | Componente | Stato |
 | --- | --- |
-| `api/` — Cloudflare Worker | 🟡 Scheletro funzionante: login cliente, saldo punti, offerte, registrazione device token. Documentato con Swagger. **Mancano**: pannello admin (`/admin/*`), ruota della fortuna (`/spin`), invio push reale via FCM, deploy su Cloudflare |
+| `api/` — Cloudflare Worker | 🟡 Scheletro funzionante: login cliente, saldo punti, offerte, registrazione device token. Documentato con Swagger. `push.ts` (invio FCM) pronto ma non ancora collegato a nessuna route. **Mancano**: pannello admin (`/admin/*`), ruota della fortuna (`/spin`), deploy su Cloudflare |
 | `app/` — App Android (Capacitor + Vue) | ⚪ Non ancora iniziato |
 | `admin/` — Pannello web per la sorella (Vue) | ⚪ Non ancora iniziato |
 

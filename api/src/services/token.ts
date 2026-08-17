@@ -1,3 +1,5 @@
+import { base64UrlDecode, base64UrlEncode } from "./base64url";
+
 const MAX_AGE_SECONDS = 180 * 24 * 60 * 60;
 
 async function hmacKey(secret: string): Promise<CryptoKey> {
@@ -8,18 +10,6 @@ async function hmacKey(secret: string): Promise<CryptoKey> {
     false,
     ["sign", "verify"],
   );
-}
-
-function base64UrlEncode(bytes: Uint8Array): string {
-  let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
-function base64UrlDecode(value: string): Uint8Array {
-  const padded = value.replace(/-/g, "+").replace(/_/g, "/").padEnd(value.length + ((4 - (value.length % 4)) % 4), "=");
-  const binary = atob(padded);
-  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
 }
 
 export async function signToken(customerId: number, secret: string): Promise<string> {

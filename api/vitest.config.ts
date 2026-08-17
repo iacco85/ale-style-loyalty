@@ -6,7 +6,12 @@ export default defineConfig({
     cloudflareTest({
       wrangler: { configPath: "./wrangler.jsonc" },
       miniflare: {
-        bindings: { AUTH_SECRET: "test-secret" },
+        bindings: {
+          AUTH_SECRET: "test-secret",
+          FCM_PROJECT_ID: "test-project",
+          FCM_CLIENT_EMAIL: "test@test.iam.gserviceaccount.com",
+          FCM_PRIVATE_KEY: "test-key",
+        },
       },
     }),
   ],

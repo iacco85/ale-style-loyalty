@@ -1,6 +1,9 @@
 export type Env = {
   DB: D1Database;
   AUTH_SECRET: string;
+  FCM_PROJECT_ID: string;
+  FCM_CLIENT_EMAIL: string;
+  FCM_PRIVATE_KEY: string;
 };
 
 export type Variables = {
