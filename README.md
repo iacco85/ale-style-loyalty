@@ -19,7 +19,7 @@ Tre componenti, che parlano solo tra loro attraverso un'API scritta da noi (ness
 
 | Componente | Stato |
 | --- | --- |
-| `api/` — Cloudflare Worker | 🟡 Login cliente, saldo punti, offerte, device token, endpoint admin (lista clienti, punti, offerte singole/broadcast con push, premi ruota) protetti da password condivisa. Documentato con Swagger. **Mancano**: ruota della fortuna (`/spin`), deploy su Cloudflare |
+| `api/` — Cloudflare Worker | 🟡 Login cliente, saldo punti, offerte, device token, endpoint admin (lista clienti, punti, offerte singole/broadcast con push, premi ruota) protetti da password condivisa, e ruota della fortuna server-authoritative (`POST /spin`, `GET /spin/status`, cooldown 7 giorni, estrazione pesata testata TDD). Documentato con Swagger. **Manca**: deploy su Cloudflare |
 | `app/` — App Android (Capacitor + Vue) | ⚪ Non ancora iniziato |
 | `admin/` — Pannello web per la sorella (Vue) | ⚪ Non ancora iniziato |
 

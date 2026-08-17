@@ -37,3 +37,10 @@ export type Prize = {
   value: number | null;
   weight: number;
 };
+
+export type Spin = {
+  id: number;
+  customer_id: number;
+  prize_id: number;
+  spun_at: string;
+};

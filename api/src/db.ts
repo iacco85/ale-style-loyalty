@@ -1,4 +1,9 @@
-import type { Customer, CustomerWithPoints, Offer, Prize, PrizeType } from "./types";
+import type { Customer, CustomerWithPoints, Offer, Prize, PrizeType, Spin } from "./types";
+
+/** SQLite `datetime('now')` restituisce "YYYY-MM-DD HH:MM:SS" in UTC senza indicazione di fuso: va normalizzato a ISO-8601 prima di passarlo a `new Date(...)`, altrimenti verrebbe interpretato come ora locale. */
+function sqliteTimestampToIso(timestamp: string): string {
+  return `${timestamp.replace(" ", "T")}Z`;
+}
 
 export async function findCustomerByPhone(db: D1Database, phone: string): Promise<Customer | null> {
   const row = await db.prepare("SELECT * FROM customers WHERE phone = ?").bind(phone).first<Customer>();
@@ -124,4 +129,21 @@ export async function updatePrize(
     .bind(prize.label, prize.type, prize.value ?? null, prize.weight, id)
     .first<Prize>();
   return row ?? null;
+}
+
+export async function getLastSpunAtForCustomer(db: D1Database, customerId: number): Promise<string | null> {
+  const row = await db
+    .prepare("SELECT spun_at FROM spins WHERE customer_id = ? ORDER BY spun_at DESC LIMIT 1")
+    .bind(customerId)
+    .first<{ spun_at: string }>();
+  return row ? sqliteTimestampToIso(row.spun_at) : null;
+}
+
+export async function recordSpin(db: D1Database, customerId: number, prizeId: number): Promise<Spin> {
+  const row = await db
+    .prepare("INSERT INTO spins (customer_id, prize_id) VALUES (?, ?) RETURNING *")
+    .bind(customerId, prizeId)
+    .first<Spin>();
+  if (!row) throw new Error("failed to record spin");
+  return row;
 }

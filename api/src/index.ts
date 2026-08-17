@@ -7,6 +7,7 @@ import deviceToken from "./routes/deviceToken";
 import login from "./routes/login";
 import me from "./routes/me";
 import offers from "./routes/offers";
+import spin from "./routes/spin";
 import type { Env } from "./types";
 
 const app = new OpenAPIHono<{ Bindings: Env }>();
@@ -24,6 +25,7 @@ app.route("/", deviceToken);
 app.route("/", adminCustomers);
 app.route("/", broadcast);
 app.route("/", prizes);
+app.route("/", spin);
 
 app.doc("/openapi.json", {
   openapi: "3.0.0",

@@ -2,7 +2,7 @@
 
 Backend del pilot fedeltà "Ale Style": un Cloudflare Worker (framework [Hono](https://hono.dev)) che espone l'API REST usata dall'app Android e dal pannello admin, con dati su Cloudflare D1 (SQLite gestito). Contesto completo del progetto in [../README.md](../README.md) e [../PLAN.md](../PLAN.md).
 
-Stato attuale: login cliente, saldo punti, offerte, registrazione device token per le push (Passo 1), `push.ts` (Passo 2, unico modulo che parla con Firebase Cloud Messaging via API HTTP v1), ed endpoint `/admin/*` protetti da password condivisa (Passo 3) — lista clienti con saldo punti, aggiunta punti, creazione offerta per un cliente singolo o in broadcast (invocano `sendPush()` in modo best-effort: l'offerta resta salvata anche se la push fallisce), CRUD dei premi della ruota. Non ancora implementati: ruota della fortuna (`/spin`), deploy su Cloudflare.
+Stato attuale: login cliente, saldo punti, offerte, registrazione device token per le push (Passo 1), `push.ts` (Passo 2, unico modulo che parla con Firebase Cloud Messaging via API HTTP v1), endpoint `/admin/*` protetti da password condivisa (Passo 3) — lista clienti con saldo punti, aggiunta punti, creazione offerta per un cliente singolo o in broadcast (invocano `sendPush()` in modo best-effort), CRUD dei premi della ruota — e la ruota della fortuna server-authoritative (Passo 4): `POST /spin` estrae un premio pesato tra quelli configurati ed enforce un cooldown di 7 giorni per cliente, `GET /spin/status` dice se può girare ora. Non ancora implementato: deploy su Cloudflare.
 
 ## Setup
 
@@ -41,7 +41,18 @@ Autenticazione minima per il pilot (un solo utente, la sorella): password condiv
 | `POST /admin/customers/:id/points` | Aggiunge una riga a `points_log` (`delta` positivo o negativo + `reason` opzionale) |
 | `POST /admin/customers/:id/offers` | Crea un'offerta per quel cliente e invia la push ai suoi device token registrati |
 | `POST /admin/broadcast` | Crea un'offerta broadcast (`customer_id` null, visibile a tutti via `GET /offers`) e invia la push a tutti i device token registrati |
-| `GET /admin/prizes` / `POST /admin/prizes` / `PUT /admin/prizes/:id` | CRUD dei premi della ruota della fortuna (label, tipo, valore, peso) — non ancora usati da `/spin` (Passo 4) |
+| `GET /admin/prizes` / `POST /admin/prizes` / `PUT /admin/prizes/:id` | CRUD dei premi della ruota della fortuna (label, tipo, valore, peso), usati da `POST /spin` per l'estrazione |
+
+## Ruota della fortuna (`/spin`)
+
+Server-authoritative (vedi CLAUDE.md — Sicurezza): il client non decide né influenza l'esito, si limita ad animare il premio già deciso dal Worker.
+
+| Endpoint | Cosa fa |
+| --- | --- |
+| `GET /spin/status` | `{ can_spin, next_spin_at }` — dice se il cliente autenticato può girare ora o quando potrà tornare a farlo |
+| `POST /spin` | Se il cooldown (7 giorni dall'ultimo spin del cliente) è scaduto, estrae un premio pesato tra quelli in `prizes` (`src/services/weightedDraw.ts`), lo registra in `spins` e lo restituisce. Altrimenti risponde `429` con `next_spin_at`. Risponde `500` se nessun premio è configurato |
+
+Logica pura testata TDD: `src/services/weightedDraw.ts` (estrazione pesata, incluso test statistico su 10000 estrazioni) e `src/services/spinCooldown.ts` (calcolo cooldown 7 giorni), entrambe in `test/services/`.
 
 ## Comandi
 
@@ -77,6 +88,10 @@ curl -X POST http://localhost:8787/device-token -H "Authorization: Bearer <token
 curl http://localhost:8787/admin/customers -H "Authorization: Bearer <ADMIN_PASSWORD>"
 curl -X POST http://localhost:8787/admin/customers/1/points -H "Authorization: Bearer <ADMIN_PASSWORD>" -H 'Content-Type: application/json' -d '{"delta":1,"reason":"Taglio"}'
 curl -X POST http://localhost:8787/admin/customers/1/offers -H "Authorization: Bearer <ADMIN_PASSWORD>" -H 'Content-Type: application/json' -d '{"title":"-15% prossimo taglio"}'
+
+curl -X POST http://localhost:8787/admin/prizes -H "Authorization: Bearer <ADMIN_PASSWORD>" -H 'Content-Type: application/json' -d '{"label":"Hai perso","type":"none","weight":70}'
+curl http://localhost:8787/spin/status -H "Authorization: Bearer <token>"
+curl -X POST http://localhost:8787/spin -H "Authorization: Bearer <token>"
 ```
 
 ## Struttura
@@ -97,9 +112,12 @@ src/
     token.ts                   # firma/verifica token (HMAC-SHA256, stateless)
     timingSafeEqual.ts         # confronto stringhe a tempo costante (password admin)
     notifications.ts           # orchestrazione push per offerte singole/broadcast, chiama sendPush()
+    weightedDraw.ts             # estrazione pesata di un premio dato un array {weight}
+    spinCooldown.ts              # calcolo cooldown 7 giorni per lo spin
   routes/                      # createRoute() + handler, un file per endpoint
     admin/                       # customers.ts, broadcast.ts, prizes.ts — endpoint /admin/*
-schema.sql                      # schema D1 completo (anche tabella spins, non ancora usata)
+    spin.ts                       # POST /spin, GET /spin/status
+schema.sql                      # schema D1 completo
 test/                             # unit test dei services + integrazione delle route
 ```
 
