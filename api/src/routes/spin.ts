@@ -7,6 +7,13 @@ import type { Env, Variables } from "../types";
 
 const errorSchema = z.object({ error: z.string() });
 
+const wheelSegmentSchema = z.object({
+  id: z.number(),
+  label: z.string(),
+  type: z.enum(["discount", "points", "none"]),
+  value: z.number().nullable(),
+});
+
 const spinStatusSchema = z.object({
   can_spin: z.boolean(),
   next_spin_at: z.string().nullable().openapi({ description: "ISO-8601, null se può girare subito" }),
@@ -66,7 +73,29 @@ const spinRoute = createRoute({
   },
 });
 
+const prizesRoute = createRoute({
+  method: "get",
+  path: "/prizes",
+  tags: ["Wheel"],
+  summary: "Segmenti della ruota (senza pesi)",
+  description: "Serve all'app per disegnare la ruota. I pesi non sono esposti: le probabilità restano private.",
+  security: [{ Bearer: [] }],
+  middleware: authMiddleware,
+  responses: {
+    200: { description: "Premi in ordine stabile", content: { "application/json": { schema: z.array(wheelSegmentSchema) } } },
+    401: { description: "Token mancante o non valido", content: { "application/json": { schema: errorSchema } } },
+  },
+});
+
 const spin = new OpenAPIHono<{ Bindings: Env; Variables: Variables }>();
+
+spin.openapi(prizesRoute, async (c) => {
+  const prizes = await listPrizes(c.env.DB);
+  const segments = prizes
+    .map(({ id, label, type, value }) => ({ id, label, type, value }))
+    .sort((a, b) => a.id - b.id);
+  return c.json(segments, 200);
+});
 
 spin.openapi(statusRoute, async (c) => {
   const customerId = c.get("customerId");

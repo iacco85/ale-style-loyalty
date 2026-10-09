@@ -83,3 +83,22 @@ describe("POST /spin", () => {
     expect(statusBody.can_spin).toBe(false);
   });
 });
+
+describe("GET /prizes", () => {
+  it("returns 401 without a token", async () => {
+    const res = await SELF.fetch("https://example.com/prizes");
+    expect(res.status).toBe(401);
+  });
+
+  it("lists the wheel segments without exposing weights", async () => {
+    await createPrize("Segmento visibile", 55);
+    const { token } = await login("3335550099");
+    const res = await SELF.fetch("https://example.com/prizes", { headers: { authorization: `Bearer ${token}` } });
+    expect(res.status).toBe(200);
+    const prizes = await res.json<Array<Record<string, unknown>>>();
+    const segment = prizes.find((p) => p.label === "Segmento visibile");
+    expect(segment).toBeDefined();
+    expect(segment).not.toHaveProperty("weight");
+    expect(prizes.map((p) => p.id)).toEqual([...prizes.map((p) => p.id as number)].sort((a, b) => a - b));
+  });
+});

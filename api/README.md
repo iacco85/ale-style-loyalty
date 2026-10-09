@@ -49,6 +49,7 @@ Server-authoritative (vedi CLAUDE.md — Sicurezza): il client non decide né in
 
 | Endpoint | Cosa fa |
 | --- | --- |
+| `GET /prizes` | Segmenti della ruota (`id`, `label`, `type`, `value`) in ordine stabile, **senza pesi**: serve all'app per disegnare la ruota senza rivelare le probabilità |
 | `GET /spin/status` | `{ can_spin, next_spin_at }` — dice se il cliente autenticato può girare ora o quando potrà tornare a farlo |
 | `POST /spin` | Se il cooldown (7 giorni dall'ultimo spin del cliente) è scaduto, estrae un premio pesato tra quelli in `prizes` (`src/services/weightedDraw.ts`), lo registra in `spins` e lo restituisce. Altrimenti risponde `429` con `next_spin_at`. Risponde `500` se nessun premio è configurato |
 
