@@ -89,6 +89,10 @@ const prizesRoute = createRoute({
 
 const spin = new OpenAPIHono<{ Bindings: Env; Variables: Variables }>();
 
+function availabilityFor(env: Env, lastSpunAt: string | null) {
+  return getSpinAvailability(lastSpunAt, new Date(), { cooldownDisabled: env.SPIN_COOLDOWN_DISABLED === "true" });
+}
+
 spin.openapi(prizesRoute, async (c) => {
   const prizes = await listPrizes(c.env.DB);
   const segments = prizes
@@ -100,14 +104,14 @@ spin.openapi(prizesRoute, async (c) => {
 spin.openapi(statusRoute, async (c) => {
   const customerId = c.get("customerId");
   const lastSpunAt = await getLastSpunAtForCustomer(c.env.DB, customerId);
-  const availability = getSpinAvailability(lastSpunAt, new Date());
+  const availability = availabilityFor(c.env, lastSpunAt);
   return c.json({ can_spin: availability.allowed, next_spin_at: availability.nextAvailableAt }, 200);
 });
 
 spin.openapi(spinRoute, async (c) => {
   const customerId = c.get("customerId");
   const lastSpunAt = await getLastSpunAtForCustomer(c.env.DB, customerId);
-  const availability = getSpinAvailability(lastSpunAt, new Date());
+  const availability = availabilityFor(c.env, lastSpunAt);
   if (!availability.allowed) {
     return c.json({ error: "cooldown_active", next_spin_at: availability.nextAvailableAt as string }, 429);
   }

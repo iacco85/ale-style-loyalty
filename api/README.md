@@ -54,6 +54,8 @@ Server-authoritative (vedi CLAUDE.md — Sicurezza): il client non decide né in
 | `GET /spin/status` | `{ can_spin, next_spin_at }` — dice se il cliente autenticato può girare ora o quando potrà tornare a farlo |
 | `POST /spin` | Se il cooldown (7 giorni dall'ultimo spin del cliente) è scaduto, estrae un premio pesato tra quelli in `prizes` (`src/services/weightedDraw.ts`), lo registra in `spins` e lo restituisce. Altrimenti risponde `429` con `next_spin_at`. Risponde `500` se nessun premio è configurato |
 
+**Provare la ruota senza aspettare 7 giorni (solo sviluppo)**: in `.dev.vars` imposta `SPIN_COOLDOWN_DISABLED=true` e riavvia (`npm run dev`): il cooldown viene ignorato e `can_spin` resta sempre `true`. È già nel `.dev.vars.example`. Non va mai impostata in produzione: non è in `wrangler.jsonc` e non deve diventare un secret. Ogni spin scrive solo una riga in `spins`, non assegna punti né sconti, quindi i giri di prova non si accumulano in nessun saldo.
+
 Logica pura testata TDD: `src/services/weightedDraw.ts` (estrazione pesata, incluso test statistico su 10000 estrazioni) e `src/services/spinCooldown.ts` (calcolo cooldown 7 giorni), entrambe in `test/services/`.
 
 ## Comandi

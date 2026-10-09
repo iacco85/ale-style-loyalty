@@ -1,6 +1,10 @@
 AUTH_SECRET=changeme-local-dev-secret
 ADMIN_PASSWORD=changeme-admin-password
 
+# Solo sviluppo: con "true" la ruota si può girare senza il limite di una volta a settimana.
+# Non impostarla mai in produzione (non va in wrangler.jsonc né nei secret).
+SPIN_COOLDOWN_DISABLED=true
+
 # Da https://console.firebase.google.com → Impostazioni progetto → Account di servizio
 # → "Genera nuova chiave privata" (scarica un file .json con questi 3 campi).
 # FCM_PRIVATE_KEY: incolla il valore "private_key" del json su una riga sola,

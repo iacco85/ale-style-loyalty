@@ -24,3 +24,15 @@ describe("getSpinAvailability", () => {
     expect(result.allowed).toBe(true);
   });
 });
+
+describe("getSpinAvailability with the cooldown disabled (dev only)", () => {
+  it("allows spinning right after the last spin", () => {
+    const result = getSpinAvailability("2026-01-01T00:00:00Z", new Date("2026-01-01T00:00:01Z"), { cooldownDisabled: true });
+    expect(result).toEqual({ allowed: true, nextAvailableAt: null });
+  });
+
+  it("keeps the 7 day cooldown when the option is not set", () => {
+    const result = getSpinAvailability("2026-01-01T00:00:00Z", new Date("2026-01-01T00:00:01Z"), {});
+    expect(result.allowed).toBe(false);
+  });
+});

@@ -5,6 +5,8 @@ export type Env = {
   FCM_PROJECT_ID: string;
   FCM_CLIENT_EMAIL: string;
   FCM_PRIVATE_KEY: string;
+  /** Solo sviluppo: "true" spegne il cooldown settimanale della ruota. Mai impostarla in produzione. */
+  SPIN_COOLDOWN_DISABLED?: string;
 };
 
 export type Variables = {
