@@ -30,11 +30,11 @@ Tre componenti, che parlano solo tra loro attraverso un'API scritta da noi (ness
 Dalla root del repo:
 
 ```bash
-npm run setup   # solo la prima volta: installa le dipendenze di root, api/ e admin/
+npm run setup   # solo la prima volta: installa le dipendenze di api/, admin/ e app/
 npm run dev     # avvia API (:8787), pannello admin (:5173) e app nel browser (:5174) insieme
 ```
 
-Ctrl+C ferma tutto (se Vite o Wrangler restano in attesa delle connessioni del browser, dopo 3 secondi la chiusura viene forzata). Se un processo resta appeso (terminale chiuso senza Ctrl+C, errore "Address already in use"), da un altro terminale lancia `npm run stop`: libera le porte 8787, 5173 e 5174. Password admin in locale: `ADMIN_PASSWORD` in `api/.dev.vars` (default `changeme-admin-password`).
+Ctrl+C chiude subito tutto (`scripts/dev.mjs`: termina l'intero albero di processi di ogni servizio, forzando dopo 2 secondi). Se un processo resta appeso (terminale chiuso senza Ctrl+C, errore "Address already in use"), da un altro terminale lancia `npm run stop`: libera le porte 8787, 5173 e 5174. Password admin in locale: `ADMIN_PASSWORD` in `api/.dev.vars` (default `changeme-admin-password`).
 
 ## Come vedere l'API funzionante adesso
 
@@ -52,7 +52,8 @@ npm run dev
 
 ```
 ale-style-loyalty/
-  package.json     # script di root: setup e dev (avvia api + admin insieme)
+  package.json     # script di root: setup, dev (avvia api + admin + app) e stop
+  scripts/dev.mjs  # lanciatore di `npm run dev`, nessuna dipendenza
   PLAN.md          # decisioni architetturali e scope del pilot — il "perché"
   CLAUDE.md         # convenzioni di codice per chi (o cosa) scrive in questo repo
   README.md          # questo file — il "cosa" e "a che punto siamo"
