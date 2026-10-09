@@ -1,13 +1,10 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import WheelDisc from "../components/WheelDisc.vue";
 import { useWheel } from "../composables/useWheel";
 import { formatDateTime } from "../formatDate";
-import { spinDurationMs } from "../wheelGeometry";
 
-const { prizes, status, rotation, spinning, result, gradient, canSpin, error, spin } = useWheel();
-
-const wheelRotation = computed(() => `${rotation.value}deg`);
-const wheelDuration = `${spinDurationMs}ms`;
+const { prizes, slices, status, rotation, spinning, result, canSpin, error, spin } = useWheel();
 
 const resultMessage = computed(() => (result.value?.type === "none" ? "Questa volta niente, riprova la prossima settimana!" : "Hai vinto!"));
 
@@ -22,7 +19,7 @@ const nextSpinMessage = computed(() =>
 
   <div class="stage">
     <div class="pointer"></div>
-    <div class="wheel"></div>
+    <WheelDisc :slices="slices" :rotation="rotation" />
   </div>
 
   <p v-if="error" class="error">{{ error }}</p>
@@ -35,11 +32,6 @@ const nextSpinMessage = computed(() =>
   <button class="spin" :disabled="!canSpin" @click="spin">{{ spinning ? "Si gira..." : "Gira" }}</button>
   <p v-if="!status.can_spin && nextSpinMessage" class="muted next">{{ nextSpinMessage }}</p>
   <p v-if="prizes.length === 0 && !error" class="muted next">La ruota non è ancora pronta.</p>
-
-  <h2>Premi in palio</h2>
-  <ul class="legend">
-    <li v-for="prize in prizes" :key="prize.id">{{ prize.label }}</li>
-  </ul>
 </template>
 
 <style scoped>
@@ -47,15 +39,6 @@ const nextSpinMessage = computed(() =>
   position: relative;
   width: min(100%, 320px);
   margin: 1.5rem auto;
-}
-
-.wheel {
-  aspect-ratio: 1;
-  border-radius: 50%;
-  border: 4px solid var(--color-accent);
-  background: v-bind(gradient);
-  transform: rotate(v-bind(wheelRotation));
-  transition: transform v-bind(wheelDuration) cubic-bezier(0.17, 0.67, 0.12, 0.99);
 }
 
 .pointer {
@@ -93,10 +76,4 @@ const nextSpinMessage = computed(() =>
   color: var(--color-accent);
 }
 
-.legend {
-  margin: 0;
-  padding-left: 1.25rem;
-  color: var(--color-muted);
-  line-height: 1.8;
-}
 </style>

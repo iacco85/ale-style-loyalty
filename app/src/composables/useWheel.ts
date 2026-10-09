@@ -1,7 +1,7 @@
 import { computed, onMounted, ref } from "vue";
 import { getSpinStatus, listWheelPrizes, spinWheel } from "../api";
 import type { SpinStatus, WheelPrize } from "../types";
-import { buildWheelGradient, spinDurationMs, stopRotation } from "../wheelGeometry";
+import { buildSlices, pickSliceIndex, spinDurationMs, stopRotation } from "../wheelGeometry";
 import { useAsyncAction } from "./useAsyncAction";
 
 const extraTurns = 6;
@@ -14,7 +14,7 @@ export function useWheel() {
   const spinning = ref(false);
   const result = ref<WheelPrize>();
 
-  const gradient = computed(() => buildWheelGradient(Math.max(prizes.value.length, 1), "var(--wheel-a)", "var(--wheel-b)"));
+  const slices = computed(() => buildSlices(prizes.value));
   const canSpin = computed(() => status.value.can_spin && prizes.value.length > 0 && !spinning.value && !busy.value);
 
   async function load() {
@@ -25,8 +25,8 @@ export function useWheel() {
   }
 
   function animateTo(prize: WheelPrize): Promise<void> {
-    const index = prizes.value.findIndex((p) => p.id === prize.id);
-    rotation.value = stopRotation({ index, count: prizes.value.length, currentRotation: rotation.value, extraTurns });
+    const index = pickSliceIndex(slices.value, prize.id, Math.random);
+    rotation.value = stopRotation({ index, count: slices.value.length, currentRotation: rotation.value, extraTurns });
     return new Promise((resolve) => setTimeout(resolve, spinDurationMs));
   }
 
@@ -48,5 +48,5 @@ export function useWheel() {
 
   onMounted(load);
 
-  return { prizes, status, rotation, spinning, result, gradient, canSpin, error, spin };
+  return { prizes, slices, status, rotation, spinning, result, canSpin, error, spin };
 }
