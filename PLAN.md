@@ -160,13 +160,25 @@ Fatte, guidate passo passo: Cloudflare (login, D1 `ale-style-loyalty`, schema re
 - La chiave privata del service account Firebase (file `...adminsdk...json`) **non va copiata** sul nuovo PC: il Worker la ha già. Va tolta dai Download del PC di lavoro.
 - Installare Android Studio, abilitare il debug USB sul telefono, poi `npm run android` nella cartella `app/`.
 
+**Nuovo PC (Windows 11) — 9 ottobre 2026**: fatti clone, Node 24 LTS, dipendenze, `google-services.json`, `api/.dev.vars`; `npm run dev` e `npm run dev:fg` resi compatibili con Windows (restano compatibili con Linux). In PowerShell serve `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`, altrimenti `npm` è bloccato. Mancano: `wrangler login`, `admin/.env.production.local`, Android Studio.
+
+## Deploy automatico di API e admin (da fare)
+
+Oggi il deploy è manuale da terminale: `npm run deploy` in `api/`, e `npm run build` + `npx wrangler pages deploy dist --project-name ale-style-admin` in `admin/`. Scelta dell'utente: **automatizzarlo con il push su GitHub**, come già fatto per il sito `ale-style`, usando l'integrazione Git di Cloudflare (non GitHub Actions, così non serve un token API di Cloudflare su GitHub).
+
+- **API**: collegare il Worker `ale-style-api` al repo da dashboard (Workers → Settings → Builds), root directory `api`, comando di deploy `npx wrangler deploy`, build watch path `api/*` per non ripubblicare a ogni modifica di `app/` o `admin/`. I segreti restano quelli già caricati.
+- **Admin**: il progetto Pages `ale-style-admin` è nato come *caricamento diretto* e Cloudflare non permette di convertirlo in un progetto collegato a Git. Va creato un nuovo progetto Pages collegato al repo (root `admin`, build `npm run build`, output `dist`, variabile `VITE_API_URL=https://ale-style-api.iacco85.workers.dev`, watch path `admin/*`), provato sul suo indirizzo `.pages.dev`, poi spostato il dominio `admin.alestyle.it` ed eliminato il vecchio progetto. Lo spostamento va fatto quando la titolare non usa il pannello (pochi minuti di possibile disservizio).
+- **Da tenere presente**: le migrazioni di `schema.sql` sul D1 remoto restano manuali (il deploy del Worker non tocca il database); decidere se far girare i test prima del deploy (es. `npm test && npx wrangler deploy` come comando).
+- Guidato passo passo come le altre configurazioni, partendo dal Worker. Aggiornare i README di `api/` e `admin/` (sezione deploy) quando è fatto.
+
 ## Prossimi passi
 
 1. **Prova su telefono** (passo 8): installare Android Studio sul nuovo PC e compilare l'app. Sblocca anche la verifica delle push.
-2. **Navigazione dell'app** (sezione sopra): tasto indietro di Android, cronologia pulita, pulsanti indietro nelle schermate secondarie.
-3. **Notifiche push** sugli eventi utili: punti aggiunti, sconto sbloccato (e, in futuro, premio in scadenza). Toccandole l'app si apre sulla pagina giusta; l'aggiornamento automatico resta la fonte affidabile dei dati, la push è solo un avviso.
-4. **Regole più strette sugli sconti** se servono (un solo sconto per appuntamento, scadenza degli sconti fedeltà).
-5. Poi la **Fase 2** qui sotto.
+2. **Deploy automatico** di API e admin col push su GitHub (sezione sopra).
+3. **Navigazione dell'app** (sezione sopra): tasto indietro di Android, cronologia pulita, pulsanti indietro nelle schermate secondarie.
+4. **Notifiche push** sugli eventi utili: punti aggiunti, sconto sbloccato (e, in futuro, premio in scadenza). Toccandole l'app si apre sulla pagina giusta; l'aggiornamento automatico resta la fonte affidabile dei dati, la push è solo un avviso.
+5. **Regole più strette sugli sconti** se servono (un solo sconto per appuntamento, scadenza degli sconti fedeltà).
+6. Poi la **Fase 2** qui sotto.
 
 ## Backlog — Fase 2 (dopo il pilot base)
 
