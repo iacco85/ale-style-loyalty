@@ -2,6 +2,7 @@
   "name": "ale-style-loyalty",
   "private": true,
   "scripts": {
+    "stop": "fuser -k 8787/tcp 5173/tcp 5174/tcp; true",
     "setup": "npm install && npm --prefix api install && npm --prefix admin install && npm --prefix app install",
     "dev": "concurrently -k -n api,admin,app -c blue,magenta,green \"npm --prefix api run dev\" \"npm --prefix admin run dev\" \"npm --prefix app run dev\""
   },

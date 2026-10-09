@@ -34,7 +34,7 @@ npm run setup   # solo la prima volta: installa le dipendenze di root, api/ e ad
 npm run dev     # avvia API (:8787), pannello admin (:5173) e app nel browser (:5174) insieme
 ```
 
-Ctrl+C ferma entrambi. Password admin in locale: `ADMIN_PASSWORD` in `api/.dev.vars` (default `changeme-admin-password`).
+Ctrl+C ferma tutto. Se un processo resta appeso (terminale chiuso senza Ctrl+C, errore "Address already in use"), da un altro terminale lancia `npm run stop`: libera le porte 8787, 5173 e 5174. Password admin in locale: `ADMIN_PASSWORD` in `api/.dev.vars` (default `changeme-admin-password`).
 
 ## Come vedere l'API funzionante adesso
 
