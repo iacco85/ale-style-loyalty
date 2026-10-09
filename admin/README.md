@@ -2,7 +2,7 @@
 
 Pannello web per la proprietaria del salone (utente non tecnica): cerca clienti, aggiunge punti, crea offerte (personali o per tutti), configura i premi della ruota. Vue 3 + TypeScript + Vite; parla solo con l'API in [../api](../api/README.md). Contesto in [../README.md](../README.md) e [../PLAN.md](../PLAN.md).
 
-Stato: tutte le pagine del pilot sono implementate. Online su Cloudflare Pages (progetto `ale-style-admin`, https://ale-style-admin.pages.dev); dominio `admin.alestyle.it` in corso di collegamento.
+Stato: tutte le pagine del pilot sono implementate. Online su Cloudflare Pages (progetto `ale-style-admin`, https://ale-style-admin.pages.dev); dominio `admin.alestyle.it` attivo.
 
 ## Comandi
 

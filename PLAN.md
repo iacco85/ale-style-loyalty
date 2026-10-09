@@ -98,13 +98,13 @@ ale-style-admin/                 # Vue (web), pannello per la sorella
 Stato aggiornato a ottobre 2026 (✅ fatto e verificato · 🟡 fatto in parte · ⬜ da fare):
 
 1. ✅ **Backend**: Worker + D1 con schema completo (`customers`, `points_log`, `offers`, `device_tokens`, `prizes`, `spins`, più `loyalty_settings`), endpoint cliente (`/login`, `/me`, `/offers`, `/device-token`) con test su D1 reale.
-2. 🟡 **Firebase / push**: `push.ts` implementato (JWT del service account + API HTTP v1). **Manca** `google-services.json` nell'app e una prova reale su telefono.
+2. 🟡 **Firebase / push**: `push.ts` implementato (JWT del service account + API HTTP v1). Progetto Firebase `ale-style-loyalty` creato, app Android `it.alestyle.loyalty` registrata, segreti `FCM_*` caricati sul Worker. **Manca** una prova reale su telefono.
 3. ✅ **Endpoint admin** protetti da password condivisa: clienti, punti, offerte singole e broadcast, premi, più reset PIN, regola fedeltà, premi vinti e riscatti.
 4. ✅ **Ruota**: `POST /spin`, `GET /spin/status`, `GET /prizes`, estrazione pesata e cooldown di 7 giorni lato server (interruttore solo-sviluppo per disattivarlo).
 5. 🟡 **App mobile**: tutte le schermate funzionano e sono provate nel browser; piattaforma Android generata con `cap add android`. **Mai compilata** per Android (serve Android Studio) né provata su telefono.
 6. ✅ **Admin web**: clienti, dettaglio (punti, fedeltà, premi vinti, offerte, reset PIN), offerta a tutti, premi della ruota, regola fedeltà.
-7. ✅ **Deploy**: Worker (`ale-style-api.iacco85.workers.dev`), D1 remoto con schema, segreti `AUTH_SECRET` e `ADMIN_PASSWORD`, admin su Pages (`ale-style-admin.pages.dev`) provato con login. Resta il dominio `admin.alestyle.it` (in verifica) e i segreti `FCM_*`.
-8. ⬜ **Prova su telefono reale**: `cap sync`, Android Studio, debug USB; verificare push, sblocco biometrico e splash nativo.
+7. ✅ **Deploy**: Worker (`ale-style-api.iacco85.workers.dev`), D1 remoto con schema, segreti `AUTH_SECRET` e `ADMIN_PASSWORD`, admin su Pages (`ale-style-admin.pages.dev`) provato con login. Dominio `admin.alestyle.it` attivo su Pages (record DNS su Cloudflare). Segreti `FCM_*` caricati.
+8. ⬜ **Prova su telefono reale**: `cap sync`, Android Studio, debug USB; verificare push, sblocco biometrico e splash nativo. **Android Studio non è ancora installato** (il PC di lavoro non è adatto: si riparte da un altro computer, vedi sotto).
 
 ## Decisioni prese dopo il piano iniziale
 
@@ -149,9 +149,20 @@ Sequenza prevista, ognuna divisa in passi piccoli:
 3. **Firebase**: aggiungere l'app Android (`it.alestyle.loyalty`) → scaricare `google-services.json` in `app/android/app/`.
 4. **Android**: installare Android Studio e abilitare il debug USB sul telefono → `npm run android` → provare l'app sul telefono (login, ruota, sblocco biometrico, splash, push).
 
+## Stato delle configurazioni (ottobre 2026)
+
+Fatte, guidate passo passo: Cloudflare (login, D1 `ale-style-loyalty`, schema remoto, segreti `AUTH_SECRET`/`ADMIN_PASSWORD`/`FCM_*`, Worker `ale-style-api.iacco85.workers.dev`), admin su Pages (`ale-style-admin`, dominio `admin.alestyle.it`), progetto Firebase e app Android registrata.
+
+**Da fare**: Android Studio e prova sul telefono (passo 4 della sequenza sopra). Ripartenza dal **nuovo PC** (quello di lavoro non va toccato):
+- Clonare il repo e `npm install` in `api/`, `app/`, `admin/`.
+- File **non versionati** da ricreare: `api/.dev.vars` (copia di `.dev.vars.example`); `app/android/app/google-services.json` (da scaricare di nuovo: console Firebase → Impostazioni progetto → le tue app → `it.alestyle.loyalty`); `admin/.env.production.local` con `VITE_API_URL=https://ale-style-api.iacco85.workers.dev` (serve solo per ripubblicare l'admin).
+- `npx wrangler login` da rifare, solo se serve ripubblicare. I segreti sono già sul Worker.
+- La chiave privata del service account Firebase (file `...adminsdk...json`) **non va copiata** sul nuovo PC: il Worker la ha già. Va tolta dai Download del PC di lavoro.
+- Installare Android Studio, abilitare il debug USB sul telefono, poi `npm run android` nella cartella `app/`.
+
 ## Prossimi passi
 
-1. **Firebase** (`google-services.json` e segreti `FCM_*`), poi **prova su telefono** (passo 8): sblocca anche le push.
+1. **Prova su telefono** (passo 8): installare Android Studio sul nuovo PC e compilare l'app. Sblocca anche la verifica delle push.
 2. **Navigazione dell'app** (sezione sopra): tasto indietro di Android, cronologia pulita, pulsanti indietro nelle schermate secondarie.
 3. **Notifiche push** sugli eventi utili: punti aggiunti, sconto sbloccato (e, in futuro, premio in scadenza). Toccandole l'app si apre sulla pagina giusta; l'aggiornamento automatico resta la fonte affidabile dei dati, la push è solo un avviso.
 4. **Regole più strette sugli sconti** se servono (un solo sconto per appuntamento, scadenza degli sconti fedeltà).
