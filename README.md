@@ -25,6 +25,17 @@ Tre componenti, che parlano solo tra loro attraverso un'API scritta da noi (ness
 
 🟢 fatto e verificato · 🟡 in corso/parziale · ⚪ non iniziato
 
+## Avviare tutto con un comando
+
+Dalla root del repo:
+
+```bash
+npm run setup   # solo la prima volta: installa le dipendenze di root, api/ e admin/
+npm run dev     # avvia API (http://localhost:8787) e pannello admin (http://localhost:5173) insieme
+```
+
+Ctrl+C ferma entrambi. Password admin in locale: `ADMIN_PASSWORD` in `api/.dev.vars` (default `changeme-admin-password`).
+
 ## Come vedere l'API funzionante adesso
 
 Oggi l'unica cosa "viva" è il backend (`api/`), testabile in locale sul tuo computer (nessun account Cloudflare necessario per questo):
@@ -41,6 +52,7 @@ npm run dev
 
 ```
 ale-style-loyalty/
+  package.json     # script di root: setup e dev (avvia api + admin insieme)
   PLAN.md          # decisioni architetturali e scope del pilot — il "perché"
   CLAUDE.md         # convenzioni di codice per chi (o cosa) scrive in questo repo
   README.md          # questo file — il "cosa" e "a che punto siamo"

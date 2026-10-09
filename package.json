@@ -1,0 +1,11 @@
+{
+  "name": "ale-style-loyalty",
+  "private": true,
+  "scripts": {
+    "setup": "npm install && npm --prefix api install && npm --prefix admin install",
+    "dev": "concurrently -k -n api,admin -c blue,magenta \"npm --prefix api run dev\" \"npm --prefix admin run dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0"
+  }
+}
