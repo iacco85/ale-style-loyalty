@@ -52,3 +52,8 @@ export interface LoyaltySnapshot extends LoyaltyRule {
   points_to_next: number;
   percent: number;
 }
+
+export interface LoyaltyRedemption extends LoyaltySnapshot {
+  redeemed_count: number;
+  redeemed_euros: number;
+}

@@ -22,7 +22,7 @@ La password da usare in locale è `ADMIN_PASSWORD` in `api/.dev.vars` (default `
 | `/login` | Inserisce la password admin; viene verificata con una chiamata reale all'API |
 | `/` | Lista clienti con saldo punti, ricerca per nome/telefono |
 | `/loyalty` | **Regola fedeltà**: ogni quanti punti si ottiene uno sconto e di quanti euro (default 100 punti = 5 €). Vale subito per tutti |
-| `/customers/:id` | Barra **fedeltà** del cliente con pulsante "Usa sconto" (scala dal saldo i punti di uno sconto, chiede conferma); aggiunge (o sottrae) punti con motivo; crea un'offerta personale con push; vede i **premi vinti alla ruota** e li segna come usati (vale una volta sola, entro 30 giorni; chiede conferma), **azzera il PIN** di un cliente che l'ha dimenticato (chiede conferma: farlo solo dopo aver riconosciuto la persona) |
+| `/customers/:id` | Barra **fedeltà** del cliente con pulsante "Usa sconto". Se ci sono più sconti sbloccati compare il flag **"Usa tutti gli sconti sbloccati"** (acceso di default, solo in quel riquadro): acceso usa tutti gli sconti in un colpo solo (es. "Usa 2 sconti · 10 €"), spento ne usa uno. Scala i punti dal saldo e chiede conferma con l'importo; aggiunge (o sottrae) punti con motivo; crea un'offerta personale con push; vede i **premi vinti alla ruota** e li segna come usati (vale una volta sola, entro 30 giorni; chiede conferma), **azzera il PIN** di un cliente che l'ha dimenticato (chiede conferma: farlo solo dopo aver riconosciuto la persona) |
 | `/broadcast` | Crea un'offerta per tutti i clienti con push |
 | `/prizes` | Elenco premi della ruota con probabilità calcolata dai pesi; crea e modifica premi |
 
