@@ -118,6 +118,22 @@ Emerse costruendo e provando il pilot; sostituiscono dove serve quanto scritto s
 - **Grafica**: tema nero e oro come il sito Ale Style (logo, Playfair Display + Lato), splash screen con logo in fade-in.
 - **Sviluppo**: `npm run dev` avvia API, admin e app in background con i log in `.dev-logs/`; `npm run stop` e `npm run logs` per fermare e leggere. Niente `Co-Authored-By` di Claude nei commit.
 
+## Come procediamo con le configurazioni
+
+Scelta dell'utente: le configurazioni fuori dal codice (account e servizi esterni) si fanno **guidati passo passo**, non tutte insieme.
+
+- **Un passo alla volta**: ogni passo dice cosa si fa e perché, il comando o il clic esatto, e cosa dovrebbe comparire se è andato bene. Si passa al successivo solo dopo la conferma.
+- **Chi fa cosa**: le azioni che toccano gli account dell'utente (login, creazione di risorse, segreti, console Firebase, Android Studio) le esegue l'utente, con le istruzioni; il codice e la verifica dei risultati li fa Claude.
+- **Segreti**: mai incollati in chat né committati; vanno inseriti direttamente con `wrangler secret put` o nei file ignorati da git.
+- **Si verifica ogni passo** prima di andare avanti (es. un `curl` sull'API appena deployata), così un errore si trova subito e non alla fine.
+
+Sequenza prevista, ognuna divisa in passi piccoli:
+
+1. **Cloudflare**: `wrangler login` → creare il database D1 e mettere il `database_id` in `wrangler.jsonc` → applicare lo schema in remoto → impostare i segreti (`AUTH_SECRET`, `ADMIN_PASSWORD`, `FCM_*`) → deploy del Worker → prova con `curl`.
+2. **Admin su Pages**: build con `VITE_API_URL` che punta al Worker → deploy → login di prova.
+3. **Firebase**: aggiungere l'app Android (`it.alestyle.loyalty`) → scaricare `google-services.json` in `app/android/app/`.
+4. **Android**: installare Android Studio e abilitare il debug USB sul telefono → `npm run android` → provare l'app sul telefono (login, ruota, sblocco biometrico, splash, push).
+
 ## Prossimi passi
 
 1. **Deploy** su Cloudflare (passo 7), poi **prova su telefono** (passo 8): sblocca anche le push.
