@@ -18,6 +18,13 @@ export type Customer = {
   created_at: string;
 };
 
+export type CustomerCredentials = Customer & {
+  pin_hash: string | null;
+  pin_salt: string | null;
+  failed_pin_attempts: number;
+  pin_locked_until: string | null;
+};
+
 export type CustomerWithPoints = Customer & { points: number };
 
 export type Offer = {

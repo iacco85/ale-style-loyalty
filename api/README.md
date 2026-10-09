@@ -2,7 +2,7 @@
 
 Backend del pilot fedeltà "Ale Style": un Cloudflare Worker (framework [Hono](https://hono.dev)) che espone l'API REST usata dall'app Android e dal pannello admin, con dati su Cloudflare D1 (SQLite gestito). Contesto completo del progetto in [../README.md](../README.md) e [../PLAN.md](../PLAN.md).
 
-Stato attuale: login cliente, saldo punti, offerte, registrazione device token per le push (Passo 1), `push.ts` (Passo 2, unico modulo che parla con Firebase Cloud Messaging via API HTTP v1), endpoint `/admin/*` protetti da password condivisa (Passo 3) — lista clienti con saldo punti, aggiunta punti, creazione offerta per un cliente singolo o in broadcast (invocano `sendPush()` in modo best-effort), CRUD dei premi della ruota — e la ruota della fortuna server-authoritative (Passo 4): `POST /spin` estrae un premio pesato tra quelli configurati ed enforce un cooldown di 7 giorni per cliente, `GET /spin/status` dice se può girare ora. Non ancora implementato: deploy su Cloudflare.
+Stato attuale: login cliente con telefono + PIN, saldo punti, offerte, registrazione device token per le push (Passo 1), `push.ts` (Passo 2, unico modulo che parla con Firebase Cloud Messaging via API HTTP v1), endpoint `/admin/*` protetti da password condivisa (Passo 3) — lista clienti con saldo punti, aggiunta punti, creazione offerta per un cliente singolo o in broadcast (invocano `sendPush()` in modo best-effort), CRUD dei premi della ruota — e la ruota della fortuna server-authoritative (Passo 4): `POST /spin` estrae un premio pesato tra quelli configurati ed enforce un cooldown di 7 giorni per cliente, `GET /spin/status` dice se può girare ora. Non ancora implementato: deploy su Cloudflare.
 
 ## Setup
 
@@ -13,7 +13,7 @@ npm run dev
 
 Basta questo: `npm run dev` crea da solo `.dev.vars` (se manca, copiandolo da `.dev.vars.example`) e applica `schema.sql` al D1 locale prima di avviare il server — non serve farlo a mano, e rilanciarlo più volte è sicuro (lo schema usa `CREATE TABLE IF NOT EXISTS`, non fallisce se le tabelle esistono già). Se modifichi `schema.sql`, il cambiamento viene applicato al prossimo `npm run dev` automaticamente.
 
-`.dev.vars` contiene i segreti locali (`AUTH_SECRET`, `ADMIN_PASSWORD`, `FCM_*`): è generato in locale, ignorato da git, non va mai committato. Se vuoi resettare completamente il D1 locale (dati di test compresi), cancella la cartella `.wrangler/` e rilancia `npm run dev`.
+`.dev.vars` contiene i segreti locali (`AUTH_SECRET`, `ADMIN_PASSWORD`, `FCM_*`): è generato in locale, ignorato da git, non va mai committato. Se aggiorni da una versione precedente senza PIN, il D1 locale esistente non ha le nuove colonne di `customers` (`CREATE TABLE IF NOT EXISTS` non le aggiunge): cancella `.wrangler/` (perdi i dati di prova) oppure esegui a mano i 4 `ALTER TABLE customers ADD COLUMN` per `pin_hash`, `pin_salt`, `failed_pin_attempts`, `pin_locked_until`. Se vuoi resettare completamente il D1 locale (dati di test compresi), cancella la cartella `.wrangler/` e rilancia `npm run dev`.
 
 ### Push notifiche (Firebase Cloud Messaging)
 
@@ -38,6 +38,7 @@ Autenticazione minima per il pilot (un solo utente, la sorella): password condiv
 | Endpoint | Cosa fa |
 | --- | --- |
 | `GET /admin/customers?search=` | Lista clienti con saldo punti calcolato; `search` filtra per nome o telefono |
+| `POST /admin/customers/:id/reset-pin` | Azzera il PIN e sblocca l'account: il cliente sceglie un nuovo PIN al prossimo accesso |
 | `POST /admin/customers/:id/points` | Aggiunge una riga a `points_log` (`delta` positivo o negativo + `reason` opzionale) |
 | `POST /admin/customers/:id/offers` | Crea un'offerta per quel cliente e invia la push ai suoi device token registrati |
 | `POST /admin/broadcast` | Crea un'offerta broadcast (`customer_id` null, visibile a tutti via `GET /offers`) e invia la push a tutti i device token registrati |
@@ -83,7 +84,7 @@ Gli endpoint cliente (`/me`, `/offers`, `/device-token`) richiedono l'header `Au
 ## Smoke test manuale
 
 ```bash
-curl -X POST http://localhost:8787/login -H 'Content-Type: application/json' -d '{"name":"Ale","phone":"3331234567"}'
+curl -X POST http://localhost:8787/login -H 'Content-Type: application/json' -d '{"name":"Ale","phone":"3331234567","pin":"4821"}'
 # → {"token": "...", "customer": {...}}
 
 curl http://localhost:8787/me -H "Authorization: Bearer <token>"
@@ -113,6 +114,9 @@ src/
   services/                 # business logic pura, sviluppata TDD (vedi CLAUDE.md)
     base64url.ts              # encode/decode base64url condiviso (token, push)
     phone.ts                 # normalizzazione/validazione numero italiano
+    pin.ts                    # validazione, hash (PBKDF2) e verifica del PIN
+    pinLockout.ts              # blocco dopo 5 PIN errati (pura)
+    customerLogin.ts            # orchestrazione del login: crea/verifica/blocca
     points.ts                 # calcolo saldo punti da points_log
     token.ts                   # firma/verifica token (HMAC-SHA256, stateless)
     timingSafeEqual.ts         # confronto stringhe a tempo costante (password admin)
@@ -128,7 +132,7 @@ test/                             # unit test dei services + integrazione delle 
 
 ## Autenticazione
 
-- **Cliente**: nessuna tabella sessioni, il token restituito da `/login` è **firmato con HMAC-SHA256** (`AUTH_SECRET`), contiene `customerId` + timestamp, scade dopo 180 giorni. Vedi `src/services/token.ts`.
+- **Cliente**: login con **telefono + PIN a 4-6 cifre** (`POST /login`). Il PIN è salvato come hash PBKDF2-SHA256 con salt casuale (`src/services/pin.ts`), mai in chiaro. Dopo 5 PIN errati l'account si blocca 15 minuti (`src/services/pinLockout.ts`, `429 too_many_attempts` con `locked_until`). Se un cliente dimentica il PIN, la titolare lo azzera da `POST /admin/customers/:id/reset-pin` e il cliente ne sceglie uno nuovo al prossimo accesso. I clienti creati prima dei PIN scelgono il PIN al primo accesso. Nessuna tabella sessioni, il token restituito da `/login` è **firmato con HMAC-SHA256** (`AUTH_SECRET`), contiene `customerId` + timestamp, scade dopo 180 giorni. Vedi `src/services/token.ts`.
 - **Admin**: password condivisa (`ADMIN_PASSWORD`) verificata a ogni richiesta con confronto a tempo costante, nessun token/sessione — scelta deliberata per il pilot, un solo utente non tecnico (vedi PLAN.md). Vedi `src/middleware/adminAuth.ts`.
 
 ## Note

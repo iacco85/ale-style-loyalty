@@ -7,7 +7,7 @@ async function login(phone: string) {
   const res = await SELF.fetch("https://example.com/login", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ name: "Ale", phone }),
+    body: JSON.stringify({ name: "Ale", phone, pin: "1234" }),
   });
   return res.json<{ token: string; customer: { id: number } }>();
 }

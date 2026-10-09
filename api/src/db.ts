@@ -1,26 +1,68 @@
-import type { Customer, CustomerWithPoints, Offer, Prize, PrizeType, Spin } from "./types";
+import type { Customer, CustomerCredentials, CustomerWithPoints, Offer, Prize, PrizeType, Spin } from "./types";
 
 /** SQLite `datetime('now')` restituisce "YYYY-MM-DD HH:MM:SS" in UTC senza indicazione di fuso: va normalizzato a ISO-8601 prima di passarlo a `new Date(...)`, altrimenti verrebbe interpretato come ora locale. */
 function sqliteTimestampToIso(timestamp: string): string {
   return `${timestamp.replace(" ", "T")}Z`;
 }
 
-export async function findCustomerByPhone(db: D1Database, phone: string): Promise<Customer | null> {
-  const row = await db.prepare("SELECT * FROM customers WHERE phone = ?").bind(phone).first<Customer>();
+// Colonne pubbliche: mai SELECT * su customers, altrimenti hash e salt del PIN finirebbero nelle risposte
+const CUSTOMER_COLUMNS = "id, name, phone, created_at";
+
+export async function findCustomerCredentialsByPhone(db: D1Database, phone: string): Promise<CustomerCredentials | null> {
+  const row = await db.prepare("SELECT * FROM customers WHERE phone = ?").bind(phone).first<CustomerCredentials>();
   return row ?? null;
 }
 
-export async function createCustomer(db: D1Database, name: string, phone: string): Promise<Customer> {
+export async function setCustomerPin(db: D1Database, customerId: number, hash: string, salt: string): Promise<void> {
+  await db
+    .prepare(
+      "UPDATE customers SET pin_hash = ?, pin_salt = ?, failed_pin_attempts = 0, pin_locked_until = NULL WHERE id = ?",
+    )
+    .bind(hash, salt, customerId)
+    .run();
+}
+
+export async function recordPinFailure(
+  db: D1Database,
+  customerId: number,
+  attempts: number,
+  lockedUntil: string | null,
+): Promise<void> {
+  await db
+    .prepare("UPDATE customers SET failed_pin_attempts = ?, pin_locked_until = ? WHERE id = ?")
+    .bind(attempts, lockedUntil, customerId)
+    .run();
+}
+
+export async function clearPinFailures(db: D1Database, customerId: number): Promise<void> {
+  await db.prepare("UPDATE customers SET failed_pin_attempts = 0, pin_locked_until = NULL WHERE id = ?").bind(customerId).run();
+}
+
+export async function resetCustomerPin(db: D1Database, customerId: number): Promise<void> {
+  await db
+    .prepare(
+      "UPDATE customers SET pin_hash = NULL, pin_salt = NULL, failed_pin_attempts = 0, pin_locked_until = NULL WHERE id = ?",
+    )
+    .bind(customerId)
+    .run();
+}
+
+export async function createCustomer(
+  db: D1Database,
+  name: string,
+  phone: string,
+  pin: { hash: string; salt: string },
+): Promise<Customer> {
   const row = await db
-    .prepare("INSERT INTO customers (name, phone) VALUES (?, ?) RETURNING *")
-    .bind(name, phone)
+    .prepare(`INSERT INTO customers (name, phone, pin_hash, pin_salt) VALUES (?, ?, ?, ?) RETURNING ${CUSTOMER_COLUMNS}`)
+    .bind(name, phone, pin.hash, pin.salt)
     .first<Customer>();
   if (!row) throw new Error("failed to create customer");
   return row;
 }
 
 export async function getCustomerById(db: D1Database, id: number): Promise<Customer | null> {
-  const row = await db.prepare("SELECT * FROM customers WHERE id = ?").bind(id).first<Customer>();
+  const row = await db.prepare(`SELECT ${CUSTOMER_COLUMNS} FROM customers WHERE id = ?`).bind(id).first<Customer>();
   return row ?? null;
 }
 
@@ -53,14 +95,14 @@ export async function listCustomers(db: D1Database, search?: string): Promise<Cu
   const query = search
     ? db
         .prepare(
-          `SELECT c.*, MAX(0, COALESCE(SUM(pl.delta), 0)) AS points
+          `SELECT c.id, c.name, c.phone, c.created_at, MAX(0, COALESCE(SUM(pl.delta), 0)) AS points
            FROM customers c LEFT JOIN points_log pl ON pl.customer_id = c.id
            WHERE c.name LIKE ? OR c.phone LIKE ?
            GROUP BY c.id ORDER BY c.name`,
         )
         .bind(`%${search}%`, `%${search}%`)
     : db.prepare(
-        `SELECT c.*, MAX(0, COALESCE(SUM(pl.delta), 0)) AS points
+        `SELECT c.id, c.name, c.phone, c.created_at, MAX(0, COALESCE(SUM(pl.delta), 0)) AS points
          FROM customers c LEFT JOIN points_log pl ON pl.customer_id = c.id
          GROUP BY c.id ORDER BY c.name`,
       );

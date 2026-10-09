@@ -2,6 +2,10 @@ CREATE TABLE IF NOT EXISTS customers (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
   phone TEXT NOT NULL UNIQUE,
+  pin_hash TEXT,
+  pin_salt TEXT,
+  failed_pin_attempts INTEGER NOT NULL DEFAULT 0,
+  pin_locked_until TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

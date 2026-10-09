@@ -7,7 +7,7 @@ async function login(phone: string, name = "Ale") {
   const res = await SELF.fetch("https://example.com/login", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ name, phone }),
+    body: JSON.stringify({ name, phone, pin: "1234" }),
   });
   return res.json<{ token: string; customer: { id: number } }>();
 }
@@ -166,5 +166,55 @@ describe("admin prizes", () => {
       body: JSON.stringify({ label: "X", type: "none", weight: 1 }),
     });
     expect(res.status).toBe(404);
+  });
+});
+
+describe("admin PIN management", () => {
+  async function postLogin(phone: string, pin: string) {
+    return SELF.fetch("https://example.com/login", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "Ale", phone, pin }),
+    });
+  }
+
+  it("never exposes PIN data in the customer list", async () => {
+    await createCustomer("3336660001");
+    const res = await SELF.fetch("https://example.com/admin/customers", { headers: ADMIN_AUTH });
+    const text = await res.text();
+    expect(text).not.toContain("pin_hash");
+    expect(text).not.toContain("pin_salt");
+  });
+
+  it("lets the owner reset a forgotten PIN so the customer can choose a new one", async () => {
+    const id = await createCustomer("3336660002");
+    expect((await postLogin("3336660002", "9999")).status).toBe(401);
+
+    const reset = await SELF.fetch(`https://example.com/admin/customers/${id}/reset-pin`, {
+      method: "POST",
+      headers: ADMIN_AUTH,
+    });
+    expect(reset.status).toBe(200);
+
+    expect((await postLogin("3336660002", "9999")).status).toBe(200);
+    expect((await postLogin("3336660002", "1234")).status).toBe(401);
+  });
+
+  it("also unlocks a locked account when resetting the PIN", async () => {
+    const id = await createCustomer("3336660003");
+    for (let i = 0; i < 5; i++) await postLogin("3336660003", "0000");
+    expect((await postLogin("3336660003", "1234")).status).toBe(429);
+
+    await SELF.fetch(`https://example.com/admin/customers/${id}/reset-pin`, { method: "POST", headers: ADMIN_AUTH });
+    expect((await postLogin("3336660003", "5555")).status).toBe(200);
+  });
+
+  it("requires admin auth and a known customer", async () => {
+    expect((await SELF.fetch("https://example.com/admin/customers/1/reset-pin", { method: "POST" })).status).toBe(401);
+    const missing = await SELF.fetch("https://example.com/admin/customers/999999/reset-pin", {
+      method: "POST",
+      headers: ADMIN_AUTH,
+    });
+    expect(missing.status).toBe(404);
   });
 });

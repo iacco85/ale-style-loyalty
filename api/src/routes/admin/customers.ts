@@ -1,5 +1,5 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { addPointsEntry, createOffer, getCustomerById, listCustomers } from "../../db";
+import { addPointsEntry, createOffer, getCustomerById, listCustomers, resetCustomerPin } from "../../db";
 import { adminAuthMiddleware } from "../../middleware/adminAuth";
 import { notifyCustomerOffer } from "../../services/notifications";
 import type { Env, Variables } from "../../types";
@@ -109,6 +109,23 @@ const createOfferRoute = createRoute({
   },
 });
 
+const resetPinRoute = createRoute({
+  method: "post",
+  path: "/admin/customers/{id}/reset-pin",
+  tags: ["Admin"],
+  summary: "Azzera il PIN di un cliente (PIN dimenticato)",
+  description:
+    "Cancella il PIN e sblocca l'account: al prossimo accesso il cliente sceglie un nuovo PIN. Va usato dopo aver verificato di persona chi è il cliente.",
+  security: [{ Bearer: [] }],
+  middleware: adminAuthMiddleware,
+  request: { params: idParamSchema },
+  responses: {
+    200: { description: "PIN azzerato", content: { "application/json": { schema: z.object({ ok: z.boolean() }) } } },
+    401: { description: "Password admin mancante o errata", content: { "application/json": { schema: errorSchema } } },
+    404: { description: "Cliente non trovato", content: { "application/json": { schema: errorSchema } } },
+  },
+});
+
 const adminCustomers = new OpenAPIHono<{ Bindings: Env; Variables: Variables }>();
 
 adminCustomers.openapi(listCustomersRoute, async (c) => {
@@ -125,6 +142,16 @@ adminCustomers.openapi(addPointsRoute, async (c) => {
   if (!customer) return c.json({ error: "not_found" }, 404);
 
   await addPointsEntry(c.env.DB, id, delta, reason);
+  return c.json({ ok: true }, 200);
+});
+
+adminCustomers.openapi(resetPinRoute, async (c) => {
+  const { id } = c.req.valid("param");
+
+  const customer = await getCustomerById(c.env.DB, id);
+  if (!customer) return c.json({ error: "not_found" }, 404);
+
+  await resetCustomerPin(c.env.DB, id);
   return c.json({ ok: true }, 200);
 });
 
