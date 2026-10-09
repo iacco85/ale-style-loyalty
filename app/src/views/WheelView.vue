@@ -27,6 +27,9 @@ const nextSpinMessage = computed(() =>
   <section v-if="result" class="card result">
     <span class="muted">{{ resultMessage }}</span>
     <strong v-if="result.type !== 'none'">{{ result.label }}</strong>
+    <RouterLink v-if="result.type !== 'none'" :to="{ name: 'prizes' }" class="see-prizes">
+      Lo trovi in "Premi", valido 30 giorni
+    </RouterLink>
   </section>
 
   <button class="spin" :disabled="!canSpin" @click="spin">{{ spinning ? "Si gira..." : "Gira" }}</button>
@@ -68,6 +71,10 @@ const nextSpinMessage = computed(() =>
   margin-bottom: 1rem;
   text-align: center;
   border-color: var(--color-accent);
+}
+
+.see-prizes {
+  font-size: 0.85rem;
 }
 
 .result strong {

@@ -39,3 +39,10 @@ export interface SpinResult {
   prize: WheelPrize;
   spun_at: string;
 }
+
+export interface WonPrize extends WheelPrize {
+  spun_at: string;
+  redeemed_at: string | null;
+  expires_at: string;
+  status: "available" | "redeemed" | "expired";
+}

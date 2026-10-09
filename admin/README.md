@@ -21,7 +21,7 @@ La password da usare in locale è `ADMIN_PASSWORD` in `api/.dev.vars` (default `
 | --- | --- |
 | `/login` | Inserisce la password admin; viene verificata con una chiamata reale all'API |
 | `/` | Lista clienti con saldo punti, ricerca per nome/telefono |
-| `/customers/:id` | Aggiunge (o sottrae) punti con motivo; crea un'offerta personale con push; **azzera il PIN** di un cliente che l'ha dimenticato (chiede conferma: farlo solo dopo aver riconosciuto la persona) |
+| `/customers/:id` | Aggiunge (o sottrae) punti con motivo; crea un'offerta personale con push; vede i **premi vinti alla ruota** e li segna come usati (vale una volta sola, entro 30 giorni; chiede conferma), **azzera il PIN** di un cliente che l'ha dimenticato (chiede conferma: farlo solo dopo aver riconosciuto la persona) |
 | `/broadcast` | Crea un'offerta per tutti i clienti con push |
 | `/prizes` | Elenco premi della ruota con probabilità calcolata dai pesi; crea e modifica premi |
 
@@ -32,7 +32,7 @@ src/
   http.ts          # fetch verso l'API con Bearer, errori tipizzati (ApiError) — testato
   api.ts           # una funzione per endpoint /admin/*; su 401 esegue il logout
   composables/     # useAuth (password in localStorage), useAsyncAction (busy/errore)
-  components/      # OfferForm (condiviso da broadcast e dettaglio cliente)
+  components/      # OfferForm (condiviso da broadcast e dettaglio cliente), WonPrizesList (premi vinti + riscatto)
   views/           # una view per rotta
   assets/          # logo Ale Style (stesso del sito)
   styles/global.css  # variabili colore e reset — tema nero/oro come il sito, font Playfair Display + Lato (@fontsource, self-hosted)

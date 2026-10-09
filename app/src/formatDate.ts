@@ -8,3 +8,7 @@ export function formatDay(iso: string): string {
     month: "long",
   });
 }
+
+export function formatExpiry(iso: string): string {
+  return new Date(iso).toLocaleDateString("it-IT", { day: "numeric", month: "long" });
+}

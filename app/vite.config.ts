@@ -9,6 +9,6 @@ export default defineConfig({
   server: {
     port: 5174,
     strictPort: true,
-    proxy: { '/login': api, '/me': api, '/offers': api, '/prizes': api, '/spin': api, '/device-token': api },
+    proxy: { '/login': api, '/me': api, '/offers': api, '/prizes': api, '/my-prizes': api, '/spin': api, '/device-token': api },
   },
 })

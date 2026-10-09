@@ -1,6 +1,6 @@
 import { currentToken, useSession } from "./composables/useSession";
 import { ApiError, apiFetch } from "./http";
-import type { LoginResponse, Offer, Profile, SpinResult, SpinStatus, WheelPrize } from "./types";
+import type { LoginResponse, Offer, Profile, SpinResult, SpinStatus, WheelPrize, WonPrize } from "./types";
 
 async function authorized<T>(path: string, method?: "GET" | "POST", body?: unknown): Promise<T> {
   try {
@@ -29,6 +29,10 @@ export function registerDeviceToken(token: string): Promise<{ ok: boolean }> {
 
 export function listWheelPrizes(): Promise<WheelPrize[]> {
   return authorized("/prizes");
+}
+
+export function listMyPrizes(): Promise<WonPrize[]> {
+  return authorized("/my-prizes");
 }
 
 export function getSpinStatus(): Promise<SpinStatus> {

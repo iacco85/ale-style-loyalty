@@ -24,6 +24,7 @@ watch(isLoggedIn, (loggedIn) => (loggedIn ? enablePush().catch(() => undefined) 
     <RouterLink :to="{ name: 'home' }">Tessera</RouterLink>
     <RouterLink :to="{ name: 'offers' }">Offerte</RouterLink>
     <RouterLink :to="{ name: 'wheel' }">Ruota</RouterLink>
+    <RouterLink :to="{ name: 'prizes' }">Premi</RouterLink>
   </nav>
 </template>
 
@@ -50,8 +51,8 @@ watch(isLoggedIn, (loggedIn) => (loggedIn ? enablePush().catch(() => undefined) 
   color: var(--color-muted);
   text-decoration: none;
   text-transform: uppercase;
-  letter-spacing: 2px;
-  font-size: 0.8rem;
+  letter-spacing: 1px;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 

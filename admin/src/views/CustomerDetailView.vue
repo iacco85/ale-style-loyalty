@@ -2,6 +2,7 @@
 import { computed, ref } from "vue";
 import { addPoints, createCustomerOffer, listCustomers, resetPin } from "../api";
 import OfferForm from "../components/OfferForm.vue";
+import WonPrizesList from "../components/WonPrizesList.vue";
 import { useAsyncAction } from "../composables/useAsyncAction";
 import type { CustomerWithPoints } from "../types";
 
@@ -56,6 +57,12 @@ load();
         <input v-model="reason" placeholder="Motivo (es. Taglio + piega)" />
         <button type="submit" :disabled="busy || delta === 0">Registra punti</button>
       </form>
+    </section>
+
+    <section class="card section">
+      <h2>Premi vinti alla ruota</h2>
+      <p class="muted">Quando la cliente mostra un premio, segnalo come usato: vale una volta sola e per 30 giorni.</p>
+      <WonPrizesList :customer-id="customerId" />
     </section>
 
     <section class="card section">

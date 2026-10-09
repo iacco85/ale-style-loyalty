@@ -27,3 +27,14 @@ export interface OfferInput {
   title: string;
   description?: string;
 }
+
+export interface WonPrize {
+  id: number;
+  label: string;
+  type: PrizeType;
+  value: number | null;
+  spun_at: string;
+  redeemed_at: string | null;
+  expires_at: string;
+  status: "available" | "redeemed" | "expired";
+}

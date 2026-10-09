@@ -4,6 +4,8 @@ import { ApiError } from "../http";
 const messages: Record<string, string> = {
   unauthorized: "Password non corretta",
   not_found: "Elemento non trovato",
+  already_redeemed: "Premio già usato",
+  expired: "Premio scaduto",
 };
 
 function messageFor(error: unknown): string {
