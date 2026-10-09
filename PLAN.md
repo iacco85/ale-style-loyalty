@@ -55,6 +55,8 @@ Va trattata come una funzionalità **server-authoritative**: il client non deve 
 
 ## Struttura dei nuovi progetti
 
+> **Aggiornamento (ottobre 2026):** i tre progetti non sono repo separati come qui sotto ma tre cartelle di un unico repo — `api/`, `app/`, `admin/` — con i comandi di sviluppo nella root (`npm run dev`, `stop`, `logs`). Lo schema qui sotto resta valido come mappa dei file, ma i nomi delle cartelle sono quelli del repo.
+
 Due cartelle sibling a `ale-style`:
 
 ```
@@ -93,14 +95,35 @@ ale-style-admin/                 # Vue (web), pannello per la sorella
 
 ## Passi implementativi
 
-1. **Backend**: creare `ale-style-api` come Cloudflare Worker (`wrangler init`), definire schema D1 (`customers`, `points_log`, `offers`, `device_tokens`, `prizes`, `spins`), implementare endpoint REST base (`/login`, `/me`, `/offers`, `/device-token`).
-2. Creare progetto Firebase **solo per Cloud Messaging** (nessun Firestore/Auth lato client), generare service account per mandare push dal Worker; implementare `push.ts` che chiama l'API HTTP v1 di FCM.
-3. Endpoint admin protetti (`/admin/customers`, `/admin/customers/:id/points`, `/admin/customers/:id/offers`, `/admin/broadcast`, `/admin/prizes`) che scrivono su D1 e, per le offerte, invocano `sendPush()`.
-4. Endpoint ruota (`POST /spin`, `GET /spin/status`) con estrazione pesata ed enforcement del cooldown settimanale lato server.
-5. **App mobile**: creare `ale-style-app` (Vite + Vue + TS), aggiungere Capacitor e piattaforma Android (`npx cap add android`), implementare `api.ts` (client fetch verso `ale-style-api`), le view Login/Home/Offers/Wheel, e il plugin `@capacitor/push-notifications` per registrare il token FCM tramite `/device-token`.
-6. **Admin web**: creare `ale-style-admin` (Vue+TS, semplice SPA), pagine Customers/CustomerDetail/Prizes che chiamano gli endpoint `/admin/*`.
-7. Deploy `ale-style-api` su Cloudflare Workers (`wrangler deploy`) e `ale-style-admin` su Cloudflare Pages (stesso account già in uso).
-8. Sync/build Android (`npx cap sync android`), eseguire su telefono Android reale via Android Studio + USB debugging.
+Stato aggiornato a ottobre 2026 (✅ fatto e verificato · 🟡 fatto in parte · ⬜ da fare):
+
+1. ✅ **Backend**: Worker + D1 con schema completo (`customers`, `points_log`, `offers`, `device_tokens`, `prizes`, `spins`, più `loyalty_settings`), endpoint cliente (`/login`, `/me`, `/offers`, `/device-token`) con test su D1 reale.
+2. 🟡 **Firebase / push**: `push.ts` implementato (JWT del service account + API HTTP v1). **Manca** `google-services.json` nell'app e una prova reale su telefono.
+3. ✅ **Endpoint admin** protetti da password condivisa: clienti, punti, offerte singole e broadcast, premi, più reset PIN, regola fedeltà, premi vinti e riscatti.
+4. ✅ **Ruota**: `POST /spin`, `GET /spin/status`, `GET /prizes`, estrazione pesata e cooldown di 7 giorni lato server (interruttore solo-sviluppo per disattivarlo).
+5. 🟡 **App mobile**: tutte le schermate funzionano e sono provate nel browser; piattaforma Android generata con `cap add android`. **Mai compilata** per Android (serve Android Studio) né provata su telefono.
+6. ✅ **Admin web**: clienti, dettaglio (punti, fedeltà, premi vinti, offerte, reset PIN), offerta a tutti, premi della ruota, regola fedeltà.
+7. ⬜ **Deploy**: Worker su Cloudflare (`wrangler login`, `d1 create`, segreti) e admin su Pages. Serve anche impostare `VITE_API_URL`.
+8. ⬜ **Prova su telefono reale**: `cap sync`, Android Studio, debug USB; verificare push, sblocco biometrico e splash nativo.
+
+## Decisioni prese dopo il piano iniziale
+
+Emerse costruendo e provando il pilot; sostituiscono dove serve quanto scritto sopra:
+
+- **Login con PIN** (al posto di nome + telefono senza verifica): PIN di 4-6 cifre scelto al primo accesso, hash PBKDF2 con salt, blocco di 15 minuti dopo 5 errori, reset dall'admin se dimenticato. Dopo il primo accesso l'app ricorda nome e telefono (mai il PIN) e chiede solo il PIN. L'SMS con OTP resta una possibile evoluzione.
+- **Sblocco biometrico** locale (impronta/volto) all'apertura dell'app e al ritorno dal background dopo 60 secondi; non sostituisce il login.
+- **Premi della ruota**: gli spicchi sono tutti uguali e i premi si ripetono sulla ruota (minimo 8 spicchi) con il nome scritto sopra, così le probabilità reali restano private. I premi di tipo sconto vanno in "I tuoi premi", valgono **30 giorni** e si usano una volta sola: li segna come usati la titolare dall'admin. I premi di tipo punti vengono **accreditati subito** nel saldo.
+- **Fedeltà a punti**: la titolare aggiunge i punti a fine appuntamento come previsto. Una **regola configurabile** dall'admin (default 100 punti = 5 €) genera sconti in euro; nell'app una barra mostra l'avanzamento e l'importo totale degli sconti sbloccati (cumulabili, senza scadenza). "Usa sconto" nell'admin li scala dal saldo, con un flag acceso di default per usarli tutti insieme.
+- **Aggiornamento dati nell'app**: tessera, offerte e premi si rileggono da soli (rientro nell'app, pagina visibile, ogni 30 secondi), senza notifiche.
+- **Grafica**: tema nero e oro come il sito Ale Style (logo, Playfair Display + Lato), splash screen con logo in fade-in.
+- **Sviluppo**: `npm run dev` avvia API, admin e app in background con i log in `.dev-logs/`; `npm run stop` e `npm run logs` per fermare e leggere. Niente `Co-Authored-By` di Claude nei commit.
+
+## Prossimi passi
+
+1. **Deploy** su Cloudflare (passo 7), poi **prova su telefono** (passo 8): sblocca anche le push.
+2. **Notifiche push** sugli eventi utili: punti aggiunti, sconto sbloccato (e, in futuro, premio in scadenza). Toccandole l'app si apre sulla pagina giusta; l'aggiornamento automatico resta la fonte affidabile dei dati, la push è solo un avviso.
+3. **Regole più strette sugli sconti** se servono (un solo sconto per appuntamento, scadenza degli sconti fedeltà).
+4. Poi la **Fase 2** qui sotto.
 
 ## Backlog — Fase 2 (dopo il pilot base)
 
