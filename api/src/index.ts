@@ -4,9 +4,11 @@ import { cors } from "hono/cors";
 import broadcast from "./routes/admin/broadcast";
 import adminCustomers from "./routes/admin/customers";
 import prizes from "./routes/admin/prizes";
+import adminWonPrizes from "./routes/admin/wonPrizes";
 import deviceToken from "./routes/deviceToken";
 import login from "./routes/login";
 import me from "./routes/me";
+import myPrizes from "./routes/myPrizes";
 import offers from "./routes/offers";
 import spin from "./routes/spin";
 import type { Env } from "./types";
@@ -30,6 +32,8 @@ app.route("/", adminCustomers);
 app.route("/", broadcast);
 app.route("/", prizes);
 app.route("/", spin);
+app.route("/", myPrizes);
+app.route("/", adminWonPrizes);
 
 app.doc("/openapi.json", {
   openapi: "3.0.0",

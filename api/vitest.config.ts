@@ -12,6 +12,7 @@ export default defineConfig({
           FCM_PROJECT_ID: "test-project",
           FCM_CLIENT_EMAIL: "test@test.iam.gserviceaccount.com",
           FCM_PRIVATE_KEY: "test-key",
+          SPIN_COOLDOWN_DISABLED: "false",
         },
       },
     }),

@@ -53,3 +53,12 @@ export type Spin = {
   prize_id: number;
   spun_at: string;
 };
+
+export type WonPrize = {
+  id: number;
+  label: string;
+  type: PrizeType;
+  value: number | null;
+  spun_at: string;
+  redeemed_at: string | null;
+};

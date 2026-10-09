@@ -1,4 +1,13 @@
-import type { Customer, CustomerCredentials, CustomerWithPoints, Offer, Prize, PrizeType, Spin } from "./types";
+import type {
+  Customer,
+  CustomerCredentials,
+  CustomerWithPoints,
+  Offer,
+  Prize,
+  PrizeType,
+  Spin,
+  WonPrize,
+} from "./types";
 
 /** SQLite `datetime('now')` restituisce "YYYY-MM-DD HH:MM:SS" in UTC senza indicazione di fuso: va normalizzato a ISO-8601 prima di passarlo a `new Date(...)`, altrimenti verrebbe interpretato come ora locale. */
 function sqliteTimestampToIso(timestamp: string): string {
@@ -188,4 +197,47 @@ export async function recordSpin(db: D1Database, customerId: number, prizeId: nu
     .first<Spin>();
   if (!row) throw new Error("failed to record spin");
   return row;
+}
+
+export async function listWonPrizes(db: D1Database, customerId: number): Promise<WonPrize[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT s.id, p.label, p.type, p.value, s.spun_at, s.redeemed_at
+       FROM spins s JOIN prizes p ON p.id = s.prize_id
+       WHERE s.customer_id = ? AND p.type != 'none'
+       ORDER BY s.spun_at DESC, s.id DESC`,
+    )
+    .bind(customerId)
+    .all<WonPrize>();
+  return results.map((row) => ({
+    ...row,
+    spun_at: sqliteTimestampToIso(row.spun_at),
+    redeemed_at: row.redeemed_at ? sqliteTimestampToIso(row.redeemed_at) : null,
+  }));
+}
+
+export async function getWonSpin(
+  db: D1Database,
+  spinId: number,
+): Promise<{ spun_at: string; redeemed_at: string | null } | null> {
+  const row = await db
+    .prepare(
+      `SELECT s.spun_at, s.redeemed_at FROM spins s JOIN prizes p ON p.id = s.prize_id
+       WHERE s.id = ? AND p.type != 'none'`,
+    )
+    .bind(spinId)
+    .first<{ spun_at: string; redeemed_at: string | null }>();
+  if (!row) return null;
+  return {
+    spun_at: sqliteTimestampToIso(row.spun_at),
+    redeemed_at: row.redeemed_at ? sqliteTimestampToIso(row.redeemed_at) : null,
+  };
+}
+
+export async function markSpinRedeemed(db: D1Database, spinId: number): Promise<boolean> {
+  const row = await db
+    .prepare("UPDATE spins SET redeemed_at = datetime('now') WHERE id = ? AND redeemed_at IS NULL RETURNING id")
+    .bind(spinId)
+    .first();
+  return row !== null;
 }

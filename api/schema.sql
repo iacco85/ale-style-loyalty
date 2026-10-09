@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS spins (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   customer_id INTEGER NOT NULL REFERENCES customers(id),
   prize_id INTEGER NOT NULL REFERENCES prizes(id),
-  spun_at TEXT NOT NULL DEFAULT (datetime('now'))
+  spun_at TEXT NOT NULL DEFAULT (datetime('now')),
+  redeemed_at TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_spins_customer ON spins(customer_id);
