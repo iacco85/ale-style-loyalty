@@ -2,8 +2,10 @@
   "name": "ale-style-loyalty",
   "private": true,
   "scripts": {
-    "stop": "fuser -k 8787/tcp 5173/tcp 5174/tcp; true",
-    "setup": "npm --prefix api install && npm --prefix admin install && npm --prefix app install",
-    "dev": "node scripts/dev.mjs"
+    "dev": "node scripts/dev.mjs start",
+    "stop": "node scripts/dev.mjs stop",
+    "logs": "node scripts/dev.mjs logs",
+    "dev:fg": "node scripts/dev.mjs fg",
+    "setup": "npm --prefix api install && npm --prefix admin install && npm --prefix app install"
   }
 }

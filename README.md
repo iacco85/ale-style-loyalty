@@ -31,10 +31,19 @@ Dalla root del repo:
 
 ```bash
 npm run setup   # solo la prima volta: installa le dipendenze di api/, admin/ e app/
-npm run dev     # avvia API (:8787), pannello admin (:5173) e app nel browser (:5174) insieme
+npm run dev     # avvia in background API (:8787), pannello admin (:5173) e app nel browser (:5174)
 ```
 
-Ctrl+C chiude subito tutto (`scripts/dev.mjs`: termina l'intero albero di processi di ogni servizio, forzando dopo 2 secondi). Se un processo resta appeso (terminale chiuso senza Ctrl+C, errore "Address already in use"), da un altro terminale lancia `npm run stop`: libera le porte 8787, 5173 e 5174. Password admin in locale: `ADMIN_PASSWORD` in `api/.dev.vars` (default `changeme-admin-password`).
+`npm run dev` parte in **background** e restituisce subito il terminale: i log non scorrono sullo schermo ma vanno in `.dev-logs/` (ignorato da git). Rilanciarlo riavvia tutto da zero, senza doppioni.
+
+| Comando | Cosa fa |
+| --- | --- |
+| `npm run dev` | Avvia (o riavvia) i tre servizi in background |
+| `npm run logs` | Segue i log dei tre servizi; Ctrl+C chiude solo la visualizzazione, i servizi restano accesi |
+| `npm run stop` | Ferma tutto e libera le porte 8787, 5173 e 5174 |
+| `npm run dev:fg` | Alternativa in primo piano con i log a schermo (Ctrl+C ferma tutto) |
+
+Password admin in locale: `ADMIN_PASSWORD` in `api/.dev.vars`. Gestito da `scripts/dev.mjs`, senza dipendenze.
 
 ## Come vedere l'API funzionante adesso
 
@@ -52,8 +61,8 @@ npm run dev
 
 ```
 ale-style-loyalty/
-  package.json     # script di root: setup, dev (avvia api + admin + app) e stop
-  scripts/dev.mjs  # lanciatore di `npm run dev`, nessuna dipendenza
+  package.json     # script di root: setup, dev, stop, logs
+  scripts/dev.mjs  # avvia/ferma i servizi di sviluppo in background, nessuna dipendenza
   PLAN.md          # decisioni architetturali e scope del pilot — il "perché"
   CLAUDE.md         # convenzioni di codice per chi (o cosa) scrive in questo repo
   README.md          # questo file — il "cosa" e "a che punto siamo"
