@@ -1,5 +1,6 @@
 import { swaggerUI } from "@hono/swagger-ui";
 import { OpenAPIHono } from "@hono/zod-openapi";
+import { cors } from "hono/cors";
 import broadcast from "./routes/admin/broadcast";
 import adminCustomers from "./routes/admin/customers";
 import prizes from "./routes/admin/prizes";
@@ -11,6 +12,9 @@ import spin from "./routes/spin";
 import type { Env } from "./types";
 
 const app = new OpenAPIHono<{ Bindings: Env }>();
+
+// Auth via header Bearer (niente cookie): "*" è sicuro e serve alla WebView Android e all'admin su un altro dominio
+app.use("*", cors({ origin: "*", allowHeaders: ["Authorization", "Content-Type"] }));
 
 app.openAPIRegistry.registerComponent("securitySchemes", "Bearer", {
   type: "http",

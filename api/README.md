@@ -65,6 +65,10 @@ Logica pura testata TDD: `src/services/weightedDraw.ts` (estrazione pesata, incl
 | `npm run typecheck` | `tsc --noEmit`, nessun build necessario: `wrangler` transpila da TS direttamente in dev/deploy |
 | `npm run deploy` | `wrangler deploy` — **non ancora usato**: serve prima `wrangler login` e un `database_id` reale in `wrangler.jsonc` (vedi sotto) |
 
+## CORS
+
+Il Worker risponde con `Access-Control-Allow-Origin: *` (`hono/cors` in `src/index.ts`): l'autenticazione è solo via header `Authorization`, senza cookie, quindi non c'è rischio di CSRF. Serve alla WebView dell'app Android e al pannello admin quando sono su un'origine diversa dall'API. Testato in `test/routes/cors.test.ts`.
+
 ## Documentazione API (Swagger)
 
 Con `npm run dev` attivo:
