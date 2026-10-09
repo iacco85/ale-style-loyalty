@@ -63,6 +63,8 @@ Tipi principali:
 - `chore`: manutenzione (config, dipendenze, wrangler.jsonc, ecc.), nessun impatto sul comportamento
 - `docs`: solo documentazione (README, CLAUDE.md, PLAN.md)
 
+**Niente `Co-Authored-By` di Claude** (né altre righe di attribuzione) nei messaggi di commit né nelle descrizioni delle PR: i commit sono solo a nome dell'utente. Questa regola ha la precedenza sull'attribuzione di default di Claude Code.
+
 Scope consigliato = sottoprogetto coinvolto: `api`, `app`, `admin`. Descrizione in inglese, imperativa, minuscola, senza punto finale.
 
 ## Sicurezza
