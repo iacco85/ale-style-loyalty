@@ -13,10 +13,11 @@ async function login(phone: string) {
   return res.json<{ token: string; customer: { id: number } }>();
 }
 
+// Come i client veri: senza corpo non c'è nemmeno il Content-Type
 function adminPost(path: string, body?: unknown) {
   return SELF.fetch(`https://example.com${path}`, {
     method: "POST",
-    headers: { ...ADMIN_AUTH, ...JSON_HEADERS },
+    headers: body === undefined ? ADMIN_AUTH : { ...ADMIN_AUTH, ...JSON_HEADERS },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 }
@@ -155,5 +156,71 @@ describe("POST /admin/customers/:id/redeem-reward", () => {
   it("returns 404 for an unknown customer and requires auth", async () => {
     expect((await adminPost("/admin/customers/999999/redeem-reward")).status).toBe(404);
     expect((await SELF.fetch("https://example.com/admin/customers/1/redeem-reward", { method: "POST" })).status).toBe(401);
+  });
+});
+
+describe("POST /admin/customers/:id/redeem-reward with all=true", () => {
+  it("uses every unlocked reward in one go", async () => {
+    const { token, customer } = await login("3339991001");
+    await givePoints(customer.id, 250);
+
+    const res = await adminPost(`/admin/customers/${customer.id}/redeem-reward`, { all: true });
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({
+      redeemed_count: 2,
+      redeemed_euros: 10,
+      points: 50,
+      rewards_available: 0,
+      points_into_next: 50,
+    });
+    expect((await getMe(token)).points).toBe(50);
+  });
+
+  it("records one single log entry for all the rewards used", async () => {
+    const { customer } = await login("3339991002");
+    await givePoints(customer.id, 300);
+    await adminPost(`/admin/customers/${customer.id}/redeem-reward`, { all: true });
+
+    const { results } = await env.DB.prepare("SELECT delta, reason FROM points_log WHERE customer_id = ? AND delta < 0")
+      .bind(customer.id)
+      .all<{ delta: number; reason: string }>();
+    expect(results).toHaveLength(1);
+    expect(results[0]?.delta).toBe(-300);
+    expect(results[0]?.reason).toContain("15 €");
+  });
+
+  it("uses just the one available reward when there is only one", async () => {
+    const { customer } = await login("3339991003");
+    await givePoints(customer.id, 130);
+    const res = await adminPost(`/admin/customers/${customer.id}/redeem-reward`, { all: true });
+    expect(await res.json()).toMatchObject({ redeemed_count: 1, redeemed_euros: 5, points: 30 });
+  });
+
+  it("still uses one reward at a time when all is false or missing", async () => {
+    const { customer } = await login("3339991004");
+    await givePoints(customer.id, 250);
+
+    const first = await adminPost(`/admin/customers/${customer.id}/redeem-reward`, { all: false });
+    expect(await first.json()).toMatchObject({ redeemed_count: 1, redeemed_euros: 5, points: 150, rewards_available: 1 });
+
+    const second = await adminPost(`/admin/customers/${customer.id}/redeem-reward`);
+    expect(await second.json()).toMatchObject({ redeemed_count: 1, points: 50 });
+  });
+
+  it("refuses when there is no reward to use, even with all=true", async () => {
+    const { customer } = await login("3339991005");
+    await givePoints(customer.id, 99);
+    const res = await adminPost(`/admin/customers/${customer.id}/redeem-reward`, { all: true });
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: "not_enough_points" });
+  });
+
+  it("follows the current rule when computing the amount", async () => {
+    const { customer } = await login("3339991006");
+    await givePoints(customer.id, 130);
+    await env.DB.prepare("UPDATE loyalty_settings SET points_per_reward = 50, reward_euros = 3").run();
+    const res = await adminPost(`/admin/customers/${customer.id}/redeem-reward`, { all: true });
+    expect(await res.json()).toMatchObject({ redeemed_count: 2, redeemed_euros: 6, points: 30 });
   });
 });

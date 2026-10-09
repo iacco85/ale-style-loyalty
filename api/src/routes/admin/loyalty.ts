@@ -1,7 +1,7 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { getCustomerById, getLoyaltyRule, setLoyaltyRule } from "../../db";
 import { adminAuthMiddleware } from "../../middleware/adminAuth";
-import { getCustomerLoyalty, redeemLoyaltyReward } from "../../services/customerLoyalty";
+import { getCustomerLoyalty, redeemLoyaltyRewards } from "../../services/customerLoyalty";
 import type { Env, Variables } from "../../types";
 import { loyaltySnapshotSchema } from "../loyaltySchema";
 
@@ -12,6 +12,11 @@ const notFound = { description: "Cliente non trovato", content: { "application/j
 const ruleSchema = z.object({
   points_per_reward: z.number().int().min(1).openapi({ description: "Punti necessari per uno sconto", example: 100 }),
   reward_euros: z.number().int().min(1).openapi({ description: "Euro di sconto", example: 5 }),
+});
+
+const redeemResultSchema = loyaltySnapshotSchema.extend({
+  redeemed_count: z.number().openapi({ description: "Quanti sconti sono stati usati" }),
+  redeemed_euros: z.number().openapi({ description: "Importo totale degli sconti usati" }),
 });
 
 const idParamSchema = z.object({
@@ -66,13 +71,20 @@ const redeemRewardRoute = createRoute({
   method: "post",
   path: "/admin/customers/{id}/redeem-reward",
   tags: ["Admin"],
-  summary: "Usa uno sconto fedeltà: scala i punti di uno sconto dal saldo",
-  description: "Da usare quando la cliente sfrutta lo sconto in salone. Aggiunge una riga negativa a points_log.",
+  summary: "Usa gli sconti fedeltà: scala i punti dal saldo",
+  description:
+    "Da usare quando la cliente sfrutta gli sconti in salone. Di default usa **uno** sconto; con `all: true` usa tutti quelli sbloccati. Aggiunge una sola riga negativa a points_log.",
   security: [{ Bearer: [] }],
   middleware: adminAuthMiddleware,
-  request: { params: idParamSchema },
+  request: {
+    params: idParamSchema,
+    body: {
+      required: false,
+      content: { "application/json": { schema: z.object({ all: z.boolean().optional().openapi({ description: "true = usa tutti gli sconti sbloccati" }) }) } },
+    },
+  },
   responses: {
-    200: { description: "Sconto usato, stato aggiornato", content: { "application/json": { schema: loyaltySnapshotSchema } } },
+    200: { description: "Sconti usati, stato aggiornato", content: { "application/json": { schema: redeemResultSchema } } },
     401: unauthorized,
     404: notFound,
     409: { description: "Punti insufficienti per uno sconto", content: { "application/json": { schema: errorSchema } } },
@@ -102,9 +114,12 @@ adminLoyalty.openapi(redeemRewardRoute, async (c) => {
   const { id } = c.req.valid("param");
   if (!(await getCustomerById(c.env.DB, id))) return c.json({ error: "not_found" }, 404);
 
-  const outcome = await redeemLoyaltyReward(c.env.DB, id);
+  const body = c.req.valid("json");
+  const outcome = await redeemLoyaltyRewards(c.env.DB, id, { all: body?.all });
   if (outcome.status === "not_enough_points") return c.json({ error: "not_enough_points" }, 409);
-  return c.json(outcome.snapshot, 200);
+
+  const { snapshot, redeemedCount, redeemedEuros } = outcome;
+  return c.json({ ...snapshot, redeemed_count: redeemedCount, redeemed_euros: redeemedEuros }, 200);
 });
 
 export default adminLoyalty;

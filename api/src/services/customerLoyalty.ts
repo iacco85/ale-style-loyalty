@@ -13,7 +13,9 @@ export interface LoyaltySnapshot {
   percent: number;
 }
 
-export type RedeemRewardOutcome = { status: "redeemed"; snapshot: LoyaltySnapshot } | { status: "not_enough_points" };
+export type RedeemRewardOutcome =
+  | { status: "redeemed"; snapshot: LoyaltySnapshot; redeemedCount: number; redeemedEuros: number }
+  | { status: "not_enough_points" };
 
 export async function getCustomerLoyalty(db: D1Database, customerId: number): Promise<LoyaltySnapshot> {
   const [entries, rule] = await Promise.all([getPointsLogForCustomer(db, customerId), getLoyaltyRule(db)]);
@@ -31,10 +33,23 @@ export async function getCustomerLoyalty(db: D1Database, customerId: number): Pr
   };
 }
 
-export async function redeemLoyaltyReward(db: D1Database, customerId: number): Promise<RedeemRewardOutcome> {
+function redemptionReason(count: number, euros: number, total: number): string {
+  return count === 1 ? `Sconto fedeltà di ${euros} €` : `Sconti fedeltà: ${count} × ${euros} € = ${total} €`;
+}
+
+export async function redeemLoyaltyRewards(
+  db: D1Database,
+  customerId: number,
+  { all = false }: { all?: boolean } = {},
+): Promise<RedeemRewardOutcome> {
   const before = await getCustomerLoyalty(db, customerId);
   if (before.rewards_available < 1) return { status: "not_enough_points" };
 
-  await addPointsEntry(db, customerId, -before.points_per_reward, `Sconto fedeltà di ${before.reward_euros} €`);
-  return { status: "redeemed", snapshot: await getCustomerLoyalty(db, customerId) };
+  const redeemedCount = all ? before.rewards_available : 1;
+  const redeemedEuros = redeemedCount * before.reward_euros;
+  const reason = redemptionReason(redeemedCount, before.reward_euros, redeemedEuros);
+
+  // una sola riga di log per tutti gli sconti usati insieme
+  await addPointsEntry(db, customerId, -redeemedCount * before.points_per_reward, reason);
+  return { status: "redeemed", snapshot: await getCustomerLoyalty(db, customerId), redeemedCount, redeemedEuros };
 }

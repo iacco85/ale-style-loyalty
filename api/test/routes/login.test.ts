@@ -130,3 +130,14 @@ describe("GET /me", () => {
     expect(body.points).toBe(0);
   });
 });
+
+describe("malformed requests", () => {
+  it("answers 400, not 500, when the JSON body is malformed", async () => {
+    const res = await SELF.fetch("https://example.com/login", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{not json",
+    });
+    expect(res.status).toBe(400);
+  });
+});

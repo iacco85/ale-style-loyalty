@@ -40,7 +40,7 @@ Autenticazione minima per il pilot (un solo utente, la sorella): password condiv
 | `GET /admin/customers?search=` | Lista clienti con saldo punti calcolato; `search` filtra per nome o telefono |
 | `GET /admin/loyalty-rule` / `PUT /admin/loyalty-rule` | Regola fedeltà: ogni `points_per_reward` punti, `reward_euros` euro di sconto (default 100 → 5 €). Cambiarla vale subito per tutti |
 | `GET /admin/customers/:id/loyalty` | Saldo punti e avanzamento verso il prossimo sconto |
-| `POST /admin/customers/:id/redeem-reward` | Usa uno sconto fedeltà: scala dal saldo i punti di uno sconto (riga negativa in `points_log`). `409 not_enough_points` se non ce ne sono abbastanza |
+| `POST /admin/customers/:id/redeem-reward` | Usa gli sconti fedeltà scalando i punti dal saldo (una sola riga negativa in `points_log`). Corpo opzionale `{ "all": true }`: usa **tutti** gli sconti sbloccati, altrimenti ne usa uno. Risponde con lo stato aggiornato più `redeemed_count` e `redeemed_euros`. `409 not_enough_points` se non ce ne sono |
 | `GET /admin/customers/:id/prizes` | Premi vinti da quel cliente alla ruota, con `status` e scadenza |
 | `POST /admin/spins/:id/redeem` | Segna un premio come usato (`id` = quello di `GET .../prizes`). `409 already_redeemed` se già usato, `409 expired` se scaduto, `404` se non esiste o è un giro perso |
 | `POST /admin/customers/:id/reset-pin` | Azzera il PIN e sblocca l'account: il cliente sceglie un nuovo PIN al prossimo accesso |

@@ -1,6 +1,7 @@
 import { swaggerUI } from "@hono/swagger-ui";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { cors } from "hono/cors";
+import { HTTPException } from "hono/http-exception";
 import broadcast from "./routes/admin/broadcast";
 import adminCustomers from "./routes/admin/customers";
 import adminLoyalty from "./routes/admin/loyalty";
@@ -50,6 +51,8 @@ app.get("/docs", swaggerUI({ url: "/openapi.json" }));
 
 app.notFound((c) => c.json({ error: "not_found" }, 404));
 app.onError((err, c) => {
+  // richiesta sbagliata del client (es. JSON malformato): 4xx, non un errore del server
+  if (err instanceof HTTPException) return c.json({ error: "bad_request" }, err.status);
   console.error(err);
   return c.json({ error: "internal_error" }, 500);
 });
