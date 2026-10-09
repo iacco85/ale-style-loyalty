@@ -122,6 +122,8 @@ Emerse costruendo e provando il pilot; sostituiscono dove serve quanto scritto s
 
 Segnalato provando l'app: dalla sezione Ruota non si riusciva a tornare indietro. Oggi la navigazione è solo la barra in basso (Tessera, Offerte, Ruota, Premi) più i collegamenti nelle pagine; **non c'è nessuna gestione esplicita del tasto/gesto "indietro" di Android** e le schermate non hanno un pulsante "indietro" proprio. Su Android il sistema ha già il suo tasto o gesto indietro e Capacitor lo collega alla cronologia del browser, ma il comportamento oggi è solo quello di default e non è stato mai provato su telefono.
 
+**Da verificare prima di intervenire**: in una seconda prova la barra in basso era visibile e quindi permetteva di cambiare sezione; la prima volta non si vedeva e non si riusciva a lasciare la Ruota. Non sappiamo perché (finestra del browser troppo bassa o di dimensioni particolari, caricamento non terminato, o un difetto della barra fissa). Va riprodotto e capito: controllare la barra a diverse altezze di schermo, anche con la tastiera aperta e con la barra di sistema di Android (`safe-area`), e solo dopo decidere se è un difetto o serve solo la gestione del tasto indietro qui sotto.
+
 Cosa va deciso e fatto:
 
 - **Tasto/gesto indietro di Android** gestito esplicitamente (`@capacitor/app`, evento `backButton`): da una sezione diversa dalla Home riporta alla **Home**; dalla Home chiude l'app (non torna al login né a pagine precedenti). Non deve mai riportare allo splash o al login quando si è già dentro.
