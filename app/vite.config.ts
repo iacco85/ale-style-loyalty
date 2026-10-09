@@ -8,6 +8,7 @@ export default defineConfig({
   plugins: [vue()],
   server: {
     port: 5174,
+    strictPort: true,
     proxy: { '/login': api, '/me': api, '/offers': api, '/prizes': api, '/spin': api, '/device-token': api },
   },
 })
