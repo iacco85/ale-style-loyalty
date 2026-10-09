@@ -1,8 +1,9 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { getCustomerById, getPointsLogForCustomer } from "../db";
+import { getCustomerById } from "../db";
 import { authMiddleware } from "../middleware/auth";
-import { computeBalance } from "../services/points";
+import { getCustomerLoyalty } from "../services/customerLoyalty";
 import type { Env, Variables } from "../types";
+import { loyaltyProgressSchema, toProgress } from "./loyaltySchema";
 
 const errorSchema = z.object({ error: z.string() });
 
@@ -23,6 +24,7 @@ const meRoute = createRoute({
             name: z.string(),
             phone: z.string(),
             points: z.number().openapi({ example: 12 }),
+            loyalty: loyaltyProgressSchema.openapi({ description: "Barra fedeltà: avanzamento verso il prossimo sconto in euro" }),
           }),
         },
       },
@@ -39,10 +41,12 @@ me.openapi(meRoute, async (c) => {
   const customer = await getCustomerById(c.env.DB, customerId);
   if (!customer) return c.json({ error: "not_found" }, 404);
 
-  const entries = await getPointsLogForCustomer(c.env.DB, customerId);
-  const points = computeBalance(entries);
+  const snapshot = await getCustomerLoyalty(c.env.DB, customerId);
 
-  return c.json({ id: customer.id, name: customer.name, phone: customer.phone, points }, 200);
+  return c.json(
+    { id: customer.id, name: customer.name, phone: customer.phone, points: snapshot.points, loyalty: toProgress(snapshot) },
+    200,
+  );
 });
 
 export default me;

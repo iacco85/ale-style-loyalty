@@ -62,3 +62,8 @@ export type WonPrize = {
   spun_at: string;
   redeemed_at: string | null;
 };
+
+export type LoyaltyRule = {
+  pointsPerReward: number;
+  rewardEuros: number;
+};

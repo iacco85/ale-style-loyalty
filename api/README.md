@@ -38,6 +38,9 @@ Autenticazione minima per il pilot (un solo utente, la sorella): password condiv
 | Endpoint | Cosa fa |
 | --- | --- |
 | `GET /admin/customers?search=` | Lista clienti con saldo punti calcolato; `search` filtra per nome o telefono |
+| `GET /admin/loyalty-rule` / `PUT /admin/loyalty-rule` | Regola fedeltà: ogni `points_per_reward` punti, `reward_euros` euro di sconto (default 100 → 5 €). Cambiarla vale subito per tutti |
+| `GET /admin/customers/:id/loyalty` | Saldo punti e avanzamento verso il prossimo sconto |
+| `POST /admin/customers/:id/redeem-reward` | Usa uno sconto fedeltà: scala dal saldo i punti di uno sconto (riga negativa in `points_log`). `409 not_enough_points` se non ce ne sono abbastanza |
 | `GET /admin/customers/:id/prizes` | Premi vinti da quel cliente alla ruota, con `status` e scadenza |
 | `POST /admin/spins/:id/redeem` | Segna un premio come usato (`id` = quello di `GET .../prizes`). `409 already_redeemed` se già usato, `409 expired` se scaduto, `404` se non esiste o è un giro perso |
 | `POST /admin/customers/:id/reset-pin` | Azzera il PIN e sblocca l'account: il cliente sceglie un nuovo PIN al prossimo accesso |
@@ -45,6 +48,10 @@ Autenticazione minima per il pilot (un solo utente, la sorella): password condiv
 | `POST /admin/customers/:id/offers` | Crea un'offerta per quel cliente e invia la push ai suoi device token registrati |
 | `POST /admin/broadcast` | Crea un'offerta broadcast (`customer_id` null, visibile a tutti via `GET /offers`) e invia la push a tutti i device token registrati |
 | `GET /admin/prizes` / `POST /admin/prizes` / `PUT /admin/prizes/:id` | CRUD dei premi della ruota della fortuna (label, tipo, valore, peso), usati da `POST /spin` per l'estrazione |
+
+## Fedeltà a punti ("barra" nell'app)
+
+I punti si accumulano come prima (la titolare li aggiunge a fine appuntamento, più gli eventuali premi a punti della ruota). La **regola** "ogni N punti, X euro di sconto" è in `loyalty_settings` (una riga, modificabile dall'admin). `GET /me` restituisce anche `loyalty` con `rewards_available` (sconti sbloccati), `points_into_next`, `points_to_next` e `percent` per la barra (logica pura testata in `src/services/loyalty.ts`). Quando la cliente usa lo sconto in salone, la titolare lo conferma dal pannello e i punti dello sconto vengono scalati dal saldo.
 
 ## Ruota della fortuna (`/spin`)
 
@@ -133,6 +140,8 @@ src/
     weightedDraw.ts             # estrazione pesata di un premio dato un array {weight}
     spinCooldown.ts              # calcolo cooldown 7 giorni per lo spin
     wheelSpin.ts                  # un giro completo: cooldown, estrazione, registrazione e accredito punti bonus
+    loyalty.ts                     # avanzamento verso il prossimo sconto (pura)
+    customerLoyalty.ts              # saldo + regola → barra; riscatto sconto
     prizeExpiry.ts                # scadenza (30 giorni) e stato di un premio vinto (pura)
     wonPrizes.ts                  # elenco premi vinti con stato e riscatto
   routes/                      # createRoute() + handler, un file per endpoint

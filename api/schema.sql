@@ -51,3 +51,11 @@ CREATE TABLE IF NOT EXISTS spins (
   redeemed_at TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_spins_customer ON spins(customer_id);
+
+-- Regola fedeltà: ogni `points_per_reward` punti, `reward_euros` euro di sconto. Una sola riga (id = 1), modificabile dall'admin
+CREATE TABLE IF NOT EXISTS loyalty_settings (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  points_per_reward INTEGER NOT NULL CHECK (points_per_reward > 0),
+  reward_euros INTEGER NOT NULL CHECK (reward_euros > 0)
+);
+INSERT OR IGNORE INTO loyalty_settings (id, points_per_reward, reward_euros) VALUES (1, 100, 5);

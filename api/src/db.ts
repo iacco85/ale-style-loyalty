@@ -2,6 +2,7 @@ import type {
   Customer,
   CustomerCredentials,
   CustomerWithPoints,
+  LoyaltyRule,
   Offer,
   Prize,
   PrizeType,
@@ -253,4 +254,19 @@ export async function markSpinRedeemed(db: D1Database, spinId: number): Promise<
     .bind(spinId)
     .first();
   return row !== null;
+}
+
+export async function getLoyaltyRule(db: D1Database): Promise<LoyaltyRule> {
+  const row = await db
+    .prepare("SELECT points_per_reward AS pointsPerReward, reward_euros AS rewardEuros FROM loyalty_settings WHERE id = 1")
+    .first<LoyaltyRule>();
+  if (!row) throw new Error("loyalty_settings row missing");
+  return row;
+}
+
+export async function setLoyaltyRule(db: D1Database, rule: LoyaltyRule): Promise<void> {
+  await db
+    .prepare("UPDATE loyalty_settings SET points_per_reward = ?, reward_euros = ? WHERE id = 1")
+    .bind(rule.pointsPerReward, rule.rewardEuros)
+    .run();
 }
