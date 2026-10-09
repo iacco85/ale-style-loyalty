@@ -24,6 +24,10 @@ export function addPoints(customerId: number, delta: number, reason?: string): P
   return authorized(`/admin/customers/${customerId}/points`, "POST", { delta, reason });
 }
 
+export function resetPin(customerId: number): Promise<{ ok: boolean }> {
+  return authorized(`/admin/customers/${customerId}/reset-pin`, "POST");
+}
+
 export function createCustomerOffer(customerId: number, offer: OfferInput): Promise<unknown> {
   return authorized(`/admin/customers/${customerId}/offers`, "POST", offer);
 }

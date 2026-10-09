@@ -1,14 +1,22 @@
 <script setup lang="ts">
 import { watch } from "vue";
+import LockScreen from "./components/LockScreen.vue";
+import { useBiometricLock } from "./composables/useBiometricLock";
 import { enablePush } from "./composables/usePush";
 import { useSession } from "./composables/useSession";
 
 const { isLoggedIn } = useSession();
+const biometricLock = useBiometricLock();
 
-watch(isLoggedIn, (loggedIn) => loggedIn && enablePush().catch(() => undefined), { immediate: true });
+biometricLock.init();
+
+watch(isLoggedIn, (loggedIn) => (loggedIn ? enablePush().catch(() => undefined) : biometricLock.disable()), {
+  immediate: true,
+});
 </script>
 
 <template>
+  <LockScreen v-if="isLoggedIn && biometricLock.locked.value" />
   <main class="page">
     <RouterView />
   </main>

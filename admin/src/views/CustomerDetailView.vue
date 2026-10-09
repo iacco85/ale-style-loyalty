@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { addPoints, createCustomerOffer, listCustomers } from "../api";
+import { addPoints, createCustomerOffer, listCustomers, resetPin } from "../api";
 import OfferForm from "../components/OfferForm.vue";
 import { useAsyncAction } from "../composables/useAsyncAction";
 import type { CustomerWithPoints } from "../types";
@@ -12,6 +12,7 @@ const { busy, error, run } = useAsyncAction();
 const customer = ref<CustomerWithPoints>();
 const delta = ref(1);
 const reason = ref("");
+const pinResetDone = ref(false);
 
 async function load() {
   const customers = await run(() => listCustomers());
@@ -23,6 +24,12 @@ async function submitPoints() {
   if (result === undefined) return;
   reason.value = "";
   await load();
+}
+
+async function submitPinReset() {
+  const confirmed = window.confirm("Azzerare il PIN? Il cliente ne sceglierà uno nuovo al prossimo accesso. Fallo solo se sei sicura che sia lui/lei.");
+  if (!confirmed) return;
+  pinResetDone.value = (await run(() => resetPin(customerId.value))) !== undefined;
 }
 
 function sendOffer(offer: Parameters<typeof createCustomerOffer>[1]) {
@@ -54,6 +61,13 @@ load();
     <section class="card section">
       <h2>Offerta personale</h2>
       <OfferForm submit-label="Crea e invia" :submit="sendOffer" />
+    </section>
+
+    <section class="card section">
+      <h2>PIN dimenticato</h2>
+      <p class="muted">Azzera il PIN: il cliente ne sceglierà uno nuovo al prossimo accesso e l'account viene sbloccato.</p>
+      <p v-if="pinResetDone" class="muted">PIN azzerato.</p>
+      <button type="button" class="secondary" :disabled="busy" @click="submitPinReset">Azzera PIN</button>
     </section>
   </template>
   <p v-else-if="!busy && !error" class="muted">Cliente non trovato.</p>

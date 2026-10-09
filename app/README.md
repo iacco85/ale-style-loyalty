@@ -20,10 +20,16 @@ Dopo ogni modifica a plugin o config nativa: `npx cap sync android`.
 
 | Rotta | Cosa fa |
 | --- | --- |
-| `/login` | Nome + cellulare (`POST /login`), niente OTP nel pilot |
-| `/` | Saldo punti (`GET /me`) e scorciatoie |
+| `/login` | Cellulare + **PIN a 4-6 cifre** (`POST /login`). Al primo accesso il PIN scelto diventa quello della cliente (e il nome serve solo allora). Dopo 5 PIN errati l'account si blocca 15 minuti; se lo dimentica, la titolare lo azzera dall'admin |
+| `/` | Saldo punti (`GET /me`), scorciatoie e interruttore **sblocco con impronta/volto** |
 | `/offers` | Offerte personali e broadcast (`GET /offers`) |
 | `/wheel` | Ruota della fortuna: la ruota si disegna con `GET /prizes`, `POST /spin` decide il premio **sul server**, l'app anima solo l'arresto sul segmento già deciso; `GET /spin/status` abilita/disabilita il pulsante |
+
+## Sblocco biometrico
+
+Dopo il primo accesso la sessione resta salvata (non si rifà il login). Dalla Home la cliente può attivare lo **sblocco con impronta o volto**: da quel momento l'app mostra una schermata di blocco a ogni apertura e quando torna in primo piano dopo più di 60 secondi (`src/lockPolicy.ts`, testata). È solo un blocco locale sul telefono: non sostituisce il login, che resta telefono + PIN. Se la biometria fallisce o non è disponibile, "Accedi con il PIN" chiude la sessione e riporta al login.
+
+Plugin: `@capgo/capacitor-native-biometric` (non esiste un plugin biometrico ufficiale Capacitor; supporta Capacitor 8) + `@capacitor/app` per rilevare ritorno in primo piano. Permesso `USE_BIOMETRIC` in `AndroidManifest.xml`. Su Android il prompt non può offrire il PIN del telefono come alternativa. Il toggle compare solo su telefono con biometria configurata (non nel browser). **Da provare su telefono reale.**
 
 ## Struttura
 
@@ -31,7 +37,9 @@ Dopo ogni modifica a plugin o config nativa: `npx cap sync android`.
 src/
   http.ts / api.ts      # fetch verso l'API, un'funzione per endpoint; su 401 la sessione termina
   wheelGeometry.ts      # logica pura: angolo di arresto e gradiente della ruota (TDD)
-  composables/          # useSession (token in localStorage), useWheel, usePush, useAsyncAction
+  lockPolicy.ts         # logica pura: quando bloccare al ritorno in primo piano (TDD)
+  biometrics.ts         # unico punto che parla col plugin biometrico
+  composables/          # useSession (token in localStorage), useWheel, usePush, useBiometricLock, useAsyncAction
   views/                # una view per rotta
 ```
 

@@ -21,7 +21,7 @@ La password da usare in locale è `ADMIN_PASSWORD` in `api/.dev.vars` (default `
 | --- | --- |
 | `/login` | Inserisce la password admin; viene verificata con una chiamata reale all'API |
 | `/` | Lista clienti con saldo punti, ricerca per nome/telefono |
-| `/customers/:id` | Aggiunge (o sottrae) punti con motivo; crea un'offerta personale con push |
+| `/customers/:id` | Aggiunge (o sottrae) punti con motivo; crea un'offerta personale con push; **azzera il PIN** di un cliente che l'ha dimenticato (chiede conferma: farlo solo dopo aver riconosciuto la persona) |
 | `/broadcast` | Crea un'offerta per tutti i clienti con push |
 | `/prizes` | Elenco premi della ruota con probabilità calcolata dai pesi; crea e modifica premi |
 

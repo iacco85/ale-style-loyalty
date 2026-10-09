@@ -11,8 +11,8 @@ async function authorized<T>(path: string, method?: "GET" | "POST", body?: unkno
   }
 }
 
-export function login(name: string, phone: string): Promise<LoginResponse> {
-  return apiFetch("/login", { method: "POST", body: { name, phone } });
+export function login(name: string, phone: string, pin: string): Promise<LoginResponse> {
+  return apiFetch("/login", { method: "POST", body: { name, phone, pin } });
 }
 
 export function getProfile(): Promise<Profile> {

@@ -38,7 +38,7 @@ Copre le quattro funzionalità richieste, con un backend reale ma minimo:
 4. **Ruota della fortuna**: la cliente può girare **una volta a settimana**; il risultato (sconto, piccolo premio, o "hai perso") è deciso **dal server**, mai dal client, con probabilità pesate per rendere i premi importanti rari. La sorella configura premi/probabilità dal pannello admin.
 
 Semplificazioni deliberate per il pilot (riviste in base al feedback, non più "usa la console Firebase"):
-- **Login clienti semplice**: nome + numero di telefono, senza verifica OTP via SMS (evita costi/complessità di Firebase Phone Auth). Verifica reale aggiungibile in seguito.
+- **Login clienti con PIN**: numero di telefono + PIN a 4-6 cifre scelto al primo accesso, senza OTP via SMS (evita costi/complessità di un provider SMS). Blocco di 15 minuti dopo 5 PIN errati, reset dall'admin se dimenticato. Sblocco biometrico (impronta/volto) locale all'apertura dell'app. Verifica via SMS aggiungibile in seguito.
 - **Admin panel minimo ma reale**: lista clienti, dettaglio cliente con pulsante "+1 punto" / punti manuali, form "crea offerta". Niente autenticazione sofisticata per l'admin nel pilot (una password condivisa/semplice va bene per iniziare, essendo un solo utente — la sorella).
 
 ## Ruota della fortuna

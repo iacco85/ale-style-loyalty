@@ -2,15 +2,24 @@
 import { ref } from "vue";
 import { getProfile } from "../api";
 import { useAsyncAction } from "../composables/useAsyncAction";
+import { useBiometricLock } from "../composables/useBiometricLock";
 import { useSession } from "../composables/useSession";
 import type { Profile } from "../types";
 
 const { end } = useSession();
+const biometricLock = useBiometricLock();
 const { error, run } = useAsyncAction();
 const profile = ref<Profile>();
 
 async function load() {
   profile.value = await run(getProfile);
+}
+
+async function toggleBiometricLock(event: Event) {
+  if (biometricLock.enabled.value) biometricLock.disable();
+  else await biometricLock.enable();
+  // se l'utente annulla il prompt, il checkbox deve tornare com'era
+  (event.target as HTMLInputElement).checked = biometricLock.enabled.value;
 }
 
 load();
@@ -34,6 +43,14 @@ load();
     <strong>Le tue offerte</strong>
     <span class="muted">Sconti riservati a te</span>
   </RouterLink>
+
+  <label v-if="biometricLock.supported.value" class="card toggle">
+    <span>
+      <strong>Sblocco con impronta o volto</strong>
+      <small class="muted">Chiede la tua identità ogni volta che riapri l'app</small>
+    </span>
+    <input type="checkbox" :checked="biometricLock.enabled.value" @change="toggleBiometricLock" />
+  </label>
 
   <button class="secondary logout" @click="end">Esci</button>
 </template>
@@ -68,6 +85,22 @@ load();
   margin-bottom: 0.75rem;
   color: inherit;
   text-decoration: none;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.toggle small {
+  display: block;
+}
+
+.toggle input {
+  width: auto;
+  accent-color: var(--color-accent);
 }
 
 .logout {

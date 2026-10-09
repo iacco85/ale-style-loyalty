@@ -19,9 +19,9 @@ Tre componenti, che parlano solo tra loro attraverso un'API scritta da noi (ness
 
 | Componente | Stato |
 | --- | --- |
-| `api/` — Cloudflare Worker | 🟡 Login cliente, saldo punti, offerte, device token, endpoint admin (lista clienti, punti, offerte singole/broadcast con push, premi ruota) protetti da password condivisa, e ruota della fortuna server-authoritative (`POST /spin`, `GET /spin/status`, cooldown 7 giorni, estrazione pesata testata TDD). Documentato con Swagger. **Manca**: deploy su Cloudflare |
-| `app/` — App Android (Capacitor + Vue) | 🟡 Login, tessera punti, offerte, ruota con animazione e registrazione token push; piattaforma Android generata. **Manca**: `google-services.json` Firebase, prova su telefono reale |
-| `admin/` — Pannello web per la sorella (Vue) | 🟡 Login, lista/ricerca clienti, punti, offerte personali e broadcast, gestione premi ruota; verificato in locale contro l'API. **Manca**: deploy (Pages + CORS sul Worker) |
+| `api/` — Cloudflare Worker | 🟡 Login cliente con telefono + PIN, saldo punti, offerte, device token, endpoint admin (lista clienti, punti, offerte singole/broadcast con push, premi ruota) protetti da password condivisa, e ruota della fortuna server-authoritative (`POST /spin`, `GET /spin/status`, cooldown 7 giorni, estrazione pesata testata TDD). Documentato con Swagger. **Manca**: deploy su Cloudflare |
+| `app/` — App Android (Capacitor + Vue) | 🟡 Login con PIN, sblocco biometrico, tessera punti, offerte, ruota con animazione e registrazione token push; piattaforma Android generata. **Manca**: `google-services.json` Firebase, prova su telefono reale |
+| `admin/` — Pannello web per la sorella (Vue) | 🟡 Login, lista/ricerca clienti, reset PIN, punti, offerte personali e broadcast, gestione premi ruota; verificato in locale contro l'API. **Manca**: deploy (Pages + CORS sul Worker) |
 
 🟢 fatto e verificato · 🟡 in corso/parziale · ⚪ non iniziato
 
