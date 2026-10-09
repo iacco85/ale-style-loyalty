@@ -51,7 +51,7 @@ Autenticazione minima per il pilot (un solo utente, la sorella): password condiv
 
 ## Fedeltà a punti ("barra" nell'app)
 
-I punti si accumulano come prima (la titolare li aggiunge a fine appuntamento, più gli eventuali premi a punti della ruota). La **regola** "ogni N punti, X euro di sconto" è in `loyalty_settings` (una riga, modificabile dall'admin). `GET /me` restituisce anche `loyalty` con `rewards_available` (sconti sbloccati), `points_into_next`, `points_to_next` e `percent` per la barra (logica pura testata in `src/services/loyalty.ts`). Quando la cliente usa lo sconto in salone, la titolare lo conferma dal pannello e i punti dello sconto vengono scalati dal saldo.
+I punti si accumulano come prima (la titolare li aggiunge a fine appuntamento, più gli eventuali premi a punti della ruota). La **regola** "ogni N punti, X euro di sconto" è in `loyalty_settings` (una riga, modificabile dall'admin). `GET /me` restituisce anche `loyalty` con `rewards_available` (sconti sbloccati), `rewards_total_euros` (importo totale degli sconti sbloccati: 2 sconti da 5 € = 10 €), `points_into_next`, `points_to_next` e `percent` per la barra (logica pura testata in `src/services/loyalty.ts`). Quando la cliente usa lo sconto in salone, la titolare lo conferma dal pannello e i punti dello sconto vengono scalati dal saldo.
 
 ## Ruota della fortuna (`/spin`)
 

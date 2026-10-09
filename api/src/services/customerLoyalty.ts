@@ -7,6 +7,7 @@ export interface LoyaltySnapshot {
   points_per_reward: number;
   reward_euros: number;
   rewards_available: number;
+  rewards_total_euros: number;
   points_into_next: number;
   points_to_next: number;
   percent: number;
@@ -23,6 +24,7 @@ export async function getCustomerLoyalty(db: D1Database, customerId: number): Pr
     points_per_reward: rule.pointsPerReward,
     reward_euros: rule.rewardEuros,
     rewards_available: progress.rewardsAvailable,
+    rewards_total_euros: progress.rewardsTotalEuros,
     points_into_next: progress.pointsIntoNext,
     points_to_next: progress.pointsToNext,
     percent: progress.percent,

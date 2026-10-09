@@ -47,6 +47,7 @@ export interface LoyaltyRule {
 export interface LoyaltySnapshot extends LoyaltyRule {
   points: number;
   rewards_available: number;
+  rewards_total_euros: number;
   points_into_next: number;
   points_to_next: number;
   percent: number;

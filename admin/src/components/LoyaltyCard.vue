@@ -39,8 +39,10 @@ load();
     <p class="muted">Mancano {{ loyalty.points_to_next }} punti al prossimo sconto.</p>
     <div v-if="loyalty.rewards_available > 0" class="available">
       <span>
-        <strong>{{ loyalty.rewards_available }}</strong>
-        {{ loyalty.rewards_available === 1 ? "sconto sbloccato" : "sconti sbloccati" }} da {{ loyalty.reward_euros }} €
+        <strong>{{ loyalty.rewards_total_euros }} € di sconto sbloccato</strong>
+        <small v-if="loyalty.rewards_available > 1" class="muted">
+          {{ loyalty.rewards_available }} sconti da {{ loyalty.reward_euros }} € ciascuno
+        </small>
       </span>
       <button :disabled="busy" @click="useReward">Usa sconto</button>
     </div>
@@ -50,6 +52,10 @@ load();
 <style scoped>
 .summary {
   margin: 0 0 0.5rem;
+}
+
+.available small {
+  display: block;
 }
 
 .available {

@@ -8,6 +8,7 @@ export interface Loyalty {
   points_per_reward: number;
   reward_euros: number;
   rewards_available: number;
+  rewards_total_euros: number;
   points_into_next: number;
   points_to_next: number;
   percent: number;

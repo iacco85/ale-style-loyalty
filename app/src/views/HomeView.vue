@@ -35,10 +35,11 @@ async function toggleBiometricLock(event: Event) {
   </section>
 
   <section v-if="profile && profile.loyalty.rewards_available > 0" class="card reward">
-    <strong>
-      Hai {{ profile.loyalty.rewards_available }}
-      {{ profile.loyalty.rewards_available === 1 ? "sconto" : "sconti" }} da {{ profile.loyalty.reward_euros }} €
-    </strong>
+    <span class="muted">Sconti sbloccati</span>
+    <strong class="reward-total">{{ profile.loyalty.rewards_total_euros }} €</strong>
+    <span v-if="profile.loyalty.rewards_available > 1" class="muted">
+      {{ profile.loyalty.rewards_available }} sconti da {{ profile.loyalty.reward_euros }} € ciascuno
+    </span>
     <span class="muted">Chiedilo in salone al prossimo appuntamento</span>
   </section>
 
@@ -100,9 +101,10 @@ async function toggleBiometricLock(event: Event) {
   border-color: var(--color-accent);
 }
 
-.reward strong {
+.reward-total {
   font-family: var(--font-heading);
-  font-size: 1.4rem;
+  font-size: 2.4rem;
+  line-height: 1;
   color: var(--color-accent);
 }
 

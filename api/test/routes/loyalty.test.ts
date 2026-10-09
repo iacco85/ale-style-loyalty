@@ -29,6 +29,7 @@ interface Loyalty {
   points_per_reward: number;
   reward_euros: number;
   rewards_available: number;
+  rewards_total_euros: number;
   points_into_next: number;
   points_to_next: number;
   percent: number;
@@ -84,6 +85,7 @@ describe("GET /me loyalty progress", () => {
       points_per_reward: 100,
       reward_euros: 5,
       rewards_available: 0,
+      rewards_total_euros: 0,
       points_into_next: 0,
       points_to_next: 100,
       percent: 0,
@@ -93,14 +95,14 @@ describe("GET /me loyalty progress", () => {
   it("follows the points given by the owner", async () => {
     const { token, customer } = await login("3339990002");
     await givePoints(customer.id, 130);
-    expect((await getMe(token)).loyalty).toMatchObject({ rewards_available: 1, points_into_next: 30, points_to_next: 70, percent: 30 });
+    expect((await getMe(token)).loyalty).toMatchObject({ rewards_available: 1, rewards_total_euros: 5, points_into_next: 30, points_to_next: 70, percent: 30 });
   });
 
   it("follows a rule changed by the owner", async () => {
     const { token, customer } = await login("3339990003");
     await givePoints(customer.id, 130);
     await env.DB.prepare("UPDATE loyalty_settings SET points_per_reward = 50, reward_euros = 3").run();
-    expect((await getMe(token)).loyalty).toMatchObject({ points_per_reward: 50, reward_euros: 3, rewards_available: 2 });
+    expect((await getMe(token)).loyalty).toMatchObject({ points_per_reward: 50, reward_euros: 3, rewards_available: 2, rewards_total_euros: 6 });
   });
 });
 

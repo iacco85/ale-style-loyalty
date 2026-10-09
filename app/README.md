@@ -21,7 +21,7 @@ Dopo ogni modifica a plugin o config nativa: `npx cap sync android`.
 | Rotta | Cosa fa |
 | --- | --- |
 | `/login` | Cellulare + **PIN a 4-6 cifre** (`POST /login`). Al primo accesso il PIN scelto diventa quello della cliente (e il nome serve solo allora). Dopo 5 PIN errati l'account si blocca 15 minuti; se lo dimentica, la titolare lo azzera dall'admin |
-| `/` | Saldo punti con **barra fedeltà** verso il prossimo sconto in euro (`loyalty` di `GET /me`), avviso "Hai N sconti da X €" quando ce ne sono di sbloccati, scorciatoie e interruttore **sblocco con impronta/volto** |
+| `/` | Saldo punti con **barra fedeltà** verso il prossimo sconto in euro (`loyalty` di `GET /me`), riquadro con l'**importo totale** degli sconti sbloccati (es. "10 €", con sotto "2 sconti da 5 € ciascuno"), scorciatoie e interruttore **sblocco con impronta/volto** |
 | `/offers` | Offerte personali e broadcast (`GET /offers`) |
 | `/prizes` | **I tuoi premi** (`GET /my-prizes`): premi vinti alla ruota con stato *Da usare* / *Usato* / *Scaduto* e scadenza (30 giorni dalla vincita). Si usano mostrandoli in salone: li segna come usati la titolare dall'admin |
 | `/wheel` | Ruota della fortuna (SVG, `WheelDisc.vue`): i premi di `GET /prizes` sono **ripetuti in giro finché ci sono almeno 8 spicchi** (con 2 premi: 8 spicchi alternati) e ogni spicchio mostra il nome del premio, a capo su al massimo 2 righe da 16 caratteri (oltre si taglia con "…": meglio nomi sotto i 30 caratteri). Gli spicchi sono tutti uguali, quindi le probabilità reali restano private. La ruota si disegna con `GET /prizes`, `POST /spin` decide il premio **sul server**, l'app anima solo l'arresto sul segmento già deciso; `GET /spin/status` abilita/disabilita il pulsante |
