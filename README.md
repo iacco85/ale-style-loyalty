@@ -43,7 +43,9 @@ npm run dev     # avvia in background API (:8787), pannello admin (:5173) e app 
 | `npm run stop` | Ferma tutto e libera le porte 8787, 5173 e 5174 |
 | `npm run dev:fg` | Alternativa in primo piano con i log a schermo (Ctrl+C ferma tutto) |
 
-Password admin in locale: `ADMIN_PASSWORD` in `api/.dev.vars`. Gestito da `scripts/dev.mjs`, senza dipendenze.
+Per avere tutto nel terminale di VS Code usa `npm run dev:fg`: i log dei tre servizi scorrono lì, ogni riga col prefisso `[api]`/`[admin]`/`[app]`.
+
+Password admin in locale: `ADMIN_PASSWORD` in `api/.dev.vars`. Gestito da `scripts/dev.mjs`, senza dipendenze; funziona su Linux, Mac e Windows.
 
 ## Come vedere l'API funzionante adesso
 
