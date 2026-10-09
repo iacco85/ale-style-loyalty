@@ -20,7 +20,7 @@ Dopo ogni modifica a plugin o config nativa: `npx cap sync android`.
 
 | Rotta | Cosa fa |
 | --- | --- |
-| `/login` | Cellulare + **PIN a 4-6 cifre** (`POST /login`). Al primo accesso il PIN scelto diventa quello della cliente (e il nome serve solo allora). Dopo 5 PIN errati l'account si blocca 15 minuti; se lo dimentica, la titolare lo azzera dall'admin |
+| `/login` | Cellulare + **PIN a 4-6 cifre** (`POST /login`). Al primo accesso il PIN scelto diventa quello della cliente (e il nome serve solo allora). Dopo 5 PIN errati l'account si blocca 15 minuti; se lo dimentica, la titolare lo azzera dall'admin. **Dopo il primo accesso l'app ricorda nome e telefono** (`useRememberedAccount`, mai il PIN né il token): dopo un logout o una sessione scaduta chiede solo il PIN, con "Non sei X? Cambia account" per ripartire da zero |
 | `/` | Saldo punti con **barra fedeltà** verso il prossimo sconto in euro (`loyalty` di `GET /me`), riquadro con l'**importo totale** degli sconti sbloccati (es. "10 €", con sotto "2 sconti da 5 € ciascuno"), scorciatoie e interruttore **sblocco con impronta/volto** |
 | `/offers` | Offerte personali e broadcast (`GET /offers`) |
 | `/prizes` | **I tuoi premi** (`GET /my-prizes`): premi vinti alla ruota con stato *Da usare* / *Usato* / *Scaduto* e scadenza (30 giorni dalla vincita). Si usano mostrandoli in salone: li segna come usati la titolare dall'admin |
@@ -49,7 +49,7 @@ src/
   lockPolicy.ts         # logica pura: quando bloccare al ritorno in primo piano (TDD)
   biometrics.ts         # unico punto che parla col plugin biometrico
   liveData.ts           # caricamento dati con aggiornamenti silenziosi in background (TDD)
-  composables/          # useLiveData, useAutoRefresh, useSession (token in localStorage), useWheel, usePush, useBiometricLock, useAsyncAction
+  composables/          # useLiveData, useAutoRefresh, useSession, useRememberedAccount (token in localStorage), useWheel, usePush, useBiometricLock, useAsyncAction
   views/                # una view per rotta
 ```
 
