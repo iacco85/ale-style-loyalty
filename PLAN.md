@@ -118,6 +118,19 @@ Emerse costruendo e provando il pilot; sostituiscono dove serve quanto scritto s
 - **Grafica**: tema nero e oro come il sito Ale Style (logo, Playfair Display + Lato), splash screen con logo in fade-in.
 - **Sviluppo**: `npm run dev` avvia API, admin e app in background con i log in `.dev-logs/`; `npm run stop` e `npm run logs` per fermare e leggere. Niente `Co-Authored-By` di Claude nei commit.
 
+## Navigazione dell'app (da implementare)
+
+Segnalato provando l'app: dalla sezione Ruota non si riusciva a tornare indietro. Oggi la navigazione è solo la barra in basso (Tessera, Offerte, Ruota, Premi) più i collegamenti nelle pagine; **non c'è nessuna gestione esplicita del tasto/gesto "indietro" di Android** e le schermate non hanno un pulsante "indietro" proprio. Su Android il sistema ha già il suo tasto o gesto indietro e Capacitor lo collega alla cronologia del browser, ma il comportamento oggi è solo quello di default e non è stato mai provato su telefono.
+
+Cosa va deciso e fatto:
+
+- **Tasto/gesto indietro di Android** gestito esplicitamente (`@capacitor/app`, evento `backButton`): da una sezione diversa dalla Home riporta alla **Home**; dalla Home chiude l'app (non torna al login né a pagine precedenti). Non deve mai riportare allo splash o al login quando si è già dentro.
+- **Barra in basso senza accumulare cronologia**: cambiare sezione con la barra sostituisce la voce di cronologia invece di aggiungerne una, così "indietro" non ripassa da tutte le sezioni visitate.
+- **Pulsante "indietro" dentro la pagina** per le schermate che non sono sezioni principali (se ne aggiungeremo, ad esempio un dettaglio di un premio), così non si dipende solo dal gesto di sistema.
+- **Durante il giro della ruota** "indietro" va ignorato fino a fine animazione, per non perdere il risultato mostrato.
+- **Con il blocco biometrico attivo** "indietro" non deve aggirare la schermata di blocco.
+- **Prova su telefono** del comportamento, perché nel browser il tasto indietro è quello del browser e non quello di Android.
+
 ## Come procediamo con le configurazioni
 
 Scelta dell'utente: le configurazioni fuori dal codice (account e servizi esterni) si fanno **guidati passo passo**, non tutte insieme.
@@ -137,9 +150,10 @@ Sequenza prevista, ognuna divisa in passi piccoli:
 ## Prossimi passi
 
 1. **Deploy** su Cloudflare (passo 7), poi **prova su telefono** (passo 8): sblocca anche le push.
-2. **Notifiche push** sugli eventi utili: punti aggiunti, sconto sbloccato (e, in futuro, premio in scadenza). Toccandole l'app si apre sulla pagina giusta; l'aggiornamento automatico resta la fonte affidabile dei dati, la push è solo un avviso.
-3. **Regole più strette sugli sconti** se servono (un solo sconto per appuntamento, scadenza degli sconti fedeltà).
-4. Poi la **Fase 2** qui sotto.
+2. **Navigazione dell'app** (sezione sopra): tasto indietro di Android, cronologia pulita, pulsanti indietro nelle schermate secondarie.
+3. **Notifiche push** sugli eventi utili: punti aggiunti, sconto sbloccato (e, in futuro, premio in scadenza). Toccandole l'app si apre sulla pagina giusta; l'aggiornamento automatico resta la fonte affidabile dei dati, la push è solo un avviso.
+4. **Regole più strette sugli sconti** se servono (un solo sconto per appuntamento, scadenza degli sconti fedeltà).
+5. Poi la **Fase 2** qui sotto.
 
 ## Backlog — Fase 2 (dopo il pilot base)
 
