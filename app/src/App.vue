@@ -2,13 +2,16 @@
 import { watch } from "vue";
 import { useRouter } from "vue-router";
 import LockScreen from "./components/LockScreen.vue";
+import SplashScreen from "./components/SplashScreen.vue";
 import { useBiometricLock } from "./composables/useBiometricLock";
 import { enablePush } from "./composables/usePush";
 import { useSession } from "./composables/useSession";
+import { useSplash } from "./composables/useSplash";
 
 const router = useRouter();
 const { isLoggedIn } = useSession();
 const biometricLock = useBiometricLock();
+const splash = useSplash();
 
 biometricLock.init();
 
@@ -23,6 +26,7 @@ watch(isLoggedIn, onSessionChange, { immediate: true });
 </script>
 
 <template>
+  <SplashScreen v-if="splash.visible.value" :leaving="splash.leaving.value" />
   <LockScreen v-if="isLoggedIn && biometricLock.locked.value" />
   <main class="page">
     <RouterView />
