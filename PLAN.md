@@ -103,7 +103,7 @@ Stato aggiornato a ottobre 2026 (✅ fatto e verificato · 🟡 fatto in parte �
 4. ✅ **Ruota**: `POST /spin`, `GET /spin/status`, `GET /prizes`, estrazione pesata e cooldown di 7 giorni lato server (interruttore solo-sviluppo per disattivarlo).
 5. 🟡 **App mobile**: tutte le schermate funzionano e sono provate nel browser; piattaforma Android generata con `cap add android`. **Mai compilata** per Android (serve Android Studio) né provata su telefono.
 6. ✅ **Admin web**: clienti, dettaglio (punti, fedeltà, premi vinti, offerte, reset PIN), offerta a tutti, premi della ruota, regola fedeltà.
-7. ✅ **Deploy**: Worker (`ale-style-api.iacco85.workers.dev`), D1 remoto con schema, segreti `AUTH_SECRET` e `ADMIN_PASSWORD`, admin su Pages (`ale-style-admin.pages.dev`) provato con login. Dominio `admin.alestyle.it` attivo su Pages (record DNS su Cloudflare). Segreti `FCM_*` caricati.
+7. ✅ **Deploy**: Worker (`api.alestyle.it`, anche `ale-style-api.iacco85.workers.dev`), D1 remoto con schema, segreti `AUTH_SECRET` e `ADMIN_PASSWORD`, admin su Pages (`ale-style-admin.pages.dev`) provato con login. Dominio `admin.alestyle.it` attivo su Pages (record DNS su Cloudflare). Segreti `FCM_*` caricati.
 8. ⬜ **Prova su telefono reale**: `cap sync`, Android Studio, debug USB; verificare push, sblocco biometrico e splash nativo. **Android Studio non è ancora installato** (il PC di lavoro non è adatto: si riparte da un altro computer, vedi sotto).
 
 ## Decisioni prese dopo il piano iniziale
@@ -151,23 +151,23 @@ Sequenza prevista, ognuna divisa in passi piccoli:
 
 ## Stato delle configurazioni (ottobre 2026)
 
-Fatte, guidate passo passo: Cloudflare (login, D1 `ale-style-loyalty`, schema remoto, segreti `AUTH_SECRET`/`ADMIN_PASSWORD`/`FCM_*`, Worker `ale-style-api.iacco85.workers.dev`), admin su Pages (`ale-style-admin`, dominio `admin.alestyle.it`), progetto Firebase e app Android registrata.
+Fatte, guidate passo passo: Cloudflare (login, D1 `ale-style-loyalty`, schema remoto, segreti `AUTH_SECRET`/`ADMIN_PASSWORD`/`FCM_*`, Worker `ale-style-api.iacco85.workers.dev` e dominio `api.alestyle.it`), admin su Pages (`ale-style-admin`, dominio `admin.alestyle.it`), progetto Firebase e app Android registrata.
 
 **Da fare**: Android Studio e prova sul telefono (passo 4 della sequenza sopra). Ripartenza dal **nuovo PC** (quello di lavoro non va toccato):
 - Clonare il repo e `npm install` in `api/`, `app/`, `admin/`.
-- File **non versionati** da ricreare: `api/.dev.vars` (copia di `.dev.vars.example`); `app/android/app/google-services.json` (da scaricare di nuovo: console Firebase → Impostazioni progetto → le tue app → `it.alestyle.loyalty`); `admin/.env.production.local` con `VITE_API_URL=https://ale-style-api.iacco85.workers.dev` (serve solo per ripubblicare l'admin).
+- File **non versionati** da ricreare: `api/.dev.vars` (copia di `.dev.vars.example`); `app/android/app/google-services.json` (da scaricare di nuovo: console Firebase → Impostazioni progetto → le tue app → `it.alestyle.loyalty`); `admin/.env.production.local` con `VITE_API_URL=https://api.alestyle.it` (serve solo per ripubblicare l'admin).
 - `npx wrangler login` da rifare, solo se serve ripubblicare. I segreti sono già sul Worker.
 - La chiave privata del service account Firebase (file `...adminsdk...json`) **non va copiata** sul nuovo PC: il Worker la ha già. Va tolta dai Download del PC di lavoro.
 - Installare Android Studio, abilitare il debug USB sul telefono, poi `npm run android` nella cartella `app/`.
 
-**Nuovo PC (Windows 11) — 9 ottobre 2026**: fatti clone, Node 24 LTS, dipendenze, `google-services.json`, `api/.dev.vars`; `npm run dev` e `npm run dev:fg` resi compatibili con Windows (restano compatibili con Linux). In PowerShell serve `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`, altrimenti `npm` è bloccato. Mancano: `wrangler login`, `admin/.env.production.local`, Android Studio.
+**Nuovo PC (Windows 11) — 9 ottobre 2026**: fatti clone, Node 24 LTS, dipendenze, `google-services.json`, `api/.dev.vars`; `npm run dev` e `npm run dev:fg` resi compatibili con Windows (restano compatibili con Linux). In PowerShell serve `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`, altrimenti `npm` è bloccato. Fatti anche `wrangler login`, Android Studio e Java 21 (Temurin, richiesto da Gradle 8.14 di Capacitor 8: con il Java 25 incluso in Android Studio non compila). Dominio `api.alestyle.it` aggiunto al Worker. Mancano: `admin/.env.production.local`, compilazione e prova sul telefono.
 
 ## Deploy automatico di API e admin (da fare)
 
 Oggi il deploy è manuale da terminale: `npm run deploy` in `api/`, e `npm run build` + `npx wrangler pages deploy dist --project-name ale-style-admin` in `admin/`. Scelta dell'utente: **automatizzarlo con il push su GitHub**, come già fatto per il sito `ale-style`, usando l'integrazione Git di Cloudflare (non GitHub Actions, così non serve un token API di Cloudflare su GitHub).
 
 - **API**: collegare il Worker `ale-style-api` al repo da dashboard (Workers → Settings → Builds), root directory `api`, comando di deploy `npx wrangler deploy`, build watch path `api/*` per non ripubblicare a ogni modifica di `app/` o `admin/`. I segreti restano quelli già caricati.
-- **Admin**: il progetto Pages `ale-style-admin` è nato come *caricamento diretto* e Cloudflare non permette di convertirlo in un progetto collegato a Git. Va creato un nuovo progetto Pages collegato al repo (root `admin`, build `npm run build`, output `dist`, variabile `VITE_API_URL=https://ale-style-api.iacco85.workers.dev`, watch path `admin/*`), provato sul suo indirizzo `.pages.dev`, poi spostato il dominio `admin.alestyle.it` ed eliminato il vecchio progetto. Lo spostamento va fatto quando la titolare non usa il pannello (pochi minuti di possibile disservizio).
+- **Admin**: il progetto Pages `ale-style-admin` è nato come *caricamento diretto* e Cloudflare non permette di convertirlo in un progetto collegato a Git. Va creato un nuovo progetto Pages collegato al repo (root `admin`, build `npm run build`, output `dist`, variabile `VITE_API_URL=https://api.alestyle.it`, watch path `admin/*`), provato sul suo indirizzo `.pages.dev`, poi spostato il dominio `admin.alestyle.it` ed eliminato il vecchio progetto. Lo spostamento va fatto quando la titolare non usa il pannello (pochi minuti di possibile disservizio).
 - **Da tenere presente**: le migrazioni di `schema.sql` sul D1 remoto restano manuali (il deploy del Worker non tocca il database); decidere se far girare i test prima del deploy (es. `npm test && npx wrangler deploy` come comando).
 - Guidato passo passo come le altre configurazioni, partendo dal Worker. Aggiornare i README di `api/` e `admin/` (sezione deploy) quando è fatto.
 

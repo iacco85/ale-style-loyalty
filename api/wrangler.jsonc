@@ -4,6 +4,8 @@
   "main": "src/index.ts",
   "compatibility_date": "2025-12-10",
   "compatibility_flags": ["nodejs_compat"],
+  "routes": [{ "pattern": "api.alestyle.it", "custom_domain": true }],
+  "workers_dev": true,
   "d1_databases": [
     {
       "binding": "DB",
