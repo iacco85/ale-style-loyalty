@@ -103,7 +103,7 @@ Stato aggiornato a ottobre 2026 (✅ fatto e verificato · 🟡 fatto in parte �
 4. ✅ **Ruota**: `POST /spin`, `GET /spin/status`, `GET /prizes`, estrazione pesata e cooldown di 7 giorni lato server (interruttore solo-sviluppo per disattivarlo).
 5. 🟡 **App mobile**: tutte le schermate funzionano e sono provate nel browser; piattaforma Android generata con `cap add android`. **Mai compilata** per Android (serve Android Studio) né provata su telefono.
 6. ✅ **Admin web**: clienti, dettaglio (punti, fedeltà, premi vinti, offerte, reset PIN), offerta a tutti, premi della ruota, regola fedeltà.
-7. ⬜ **Deploy**: Worker su Cloudflare (`wrangler login`, `d1 create`, segreti) e admin su Pages. Serve anche impostare `VITE_API_URL`.
+7. ✅ **Deploy**: Worker (`ale-style-api.iacco85.workers.dev`), D1 remoto con schema, segreti `AUTH_SECRET` e `ADMIN_PASSWORD`, admin su Pages (`ale-style-admin.pages.dev`) provato con login. Resta il dominio `admin.alestyle.it` (in verifica) e i segreti `FCM_*`.
 8. ⬜ **Prova su telefono reale**: `cap sync`, Android Studio, debug USB; verificare push, sblocco biometrico e splash nativo.
 
 ## Decisioni prese dopo il piano iniziale
@@ -151,7 +151,7 @@ Sequenza prevista, ognuna divisa in passi piccoli:
 
 ## Prossimi passi
 
-1. **Deploy** su Cloudflare (passo 7), poi **prova su telefono** (passo 8): sblocca anche le push.
+1. **Firebase** (`google-services.json` e segreti `FCM_*`), poi **prova su telefono** (passo 8): sblocca anche le push.
 2. **Navigazione dell'app** (sezione sopra): tasto indietro di Android, cronologia pulita, pulsanti indietro nelle schermate secondarie.
 3. **Notifiche push** sugli eventi utili: punti aggiunti, sconto sbloccato (e, in futuro, premio in scadenza). Toccandole l'app si apre sulla pagina giusta; l'aggiornamento automatico resta la fonte affidabile dei dati, la push è solo un avviso.
 4. **Regole più strette sugli sconti** se servono (un solo sconto per appuntamento, scadenza degli sconti fedeltà).

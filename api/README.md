@@ -2,7 +2,7 @@
 
 Backend del pilot fedeltà "Ale Style": un Cloudflare Worker (framework [Hono](https://hono.dev)) che espone l'API REST usata dall'app Android e dal pannello admin, con dati su Cloudflare D1 (SQLite gestito). Contesto completo del progetto in [../README.md](../README.md) e [../PLAN.md](../PLAN.md).
 
-Stato attuale: login cliente con telefono + PIN, saldo punti, offerte, registrazione device token per le push (Passo 1), `push.ts` (Passo 2, unico modulo che parla con Firebase Cloud Messaging via API HTTP v1), endpoint `/admin/*` protetti da password condivisa (Passo 3) — lista clienti con saldo punti, aggiunta punti, creazione offerta per un cliente singolo o in broadcast (invocano `sendPush()` in modo best-effort), CRUD dei premi della ruota — e la ruota della fortuna server-authoritative (Passo 4): `POST /spin` estrae un premio pesato tra quelli configurati ed enforce un cooldown di 7 giorni per cliente, `GET /spin/status` dice se può girare ora. Non ancora implementato: deploy su Cloudflare.
+Stato attuale: login cliente con telefono + PIN, saldo punti, offerte, registrazione device token per le push (Passo 1), `push.ts` (Passo 2, unico modulo che parla con Firebase Cloud Messaging via API HTTP v1), endpoint `/admin/*` protetti da password condivisa (Passo 3) — lista clienti con saldo punti, aggiunta punti, creazione offerta per un cliente singolo o in broadcast (invocano `sendPush()` in modo best-effort), CRUD dei premi della ruota — e la ruota della fortuna server-authoritative (Passo 4): `POST /spin` estrae un premio pesato tra quelli configurati ed enforce un cooldown di 7 giorni per cliente, `GET /spin/status` dice se può girare ora. Online su Cloudflare: https://ale-style-api.iacco85.workers.dev (D1 remoto con lo schema applicato, segreti `AUTH_SECRET` e `ADMIN_PASSWORD` impostati). Mancano i segreti `FCM_*` per le push.
 
 ## Setup
 
@@ -80,7 +80,7 @@ Logica pura testata TDD: `src/services/weightedDraw.ts` (estrazione pesata, incl
 | `npm test` | Esegue tutti i test (`vitest run`) — unit sui `services/` + integrazione sulle route con D1 reale (non mockato). Ambiente di test completamente separato da quello di `npm run dev`, non serve `.dev.vars` |
 | `npm run test:watch` | Stessi test, in watch mode (utile per il ciclo TDD) |
 | `npm run typecheck` | `tsc --noEmit`, nessun build necessario: `wrangler` transpila da TS direttamente in dev/deploy |
-| `npm run deploy` | `wrangler deploy` — **non ancora usato**: serve prima `wrangler login` e un `database_id` reale in `wrangler.jsonc` (vedi sotto) |
+| `npm run deploy` | `wrangler deploy` — pubblica il Worker su Cloudflare (richiede `wrangler login`, vedi Note) |
 
 ## CORS
 
@@ -159,4 +159,4 @@ test/                             # unit test dei services + integrazione delle 
 ## Note
 
 - Versioni di `vitest`/`@cloudflare/vitest-pool-workers` tenute all'ultima stabile: `npm audit` deve restare a **0 vulnerabilità**.
-- Per il deploy reale su Cloudflare serve: `wrangler login` (non ancora fatto su questa macchina per l'account personale) + `wrangler d1 create ale-style-loyalty` per ottenere un `database_id` reale da mettere in `wrangler.jsonc` (oggi è un placeholder) + `wrangler secret put AUTH_SECRET` + `wrangler secret put ADMIN_PASSWORD`.
+- Deploy su Cloudflare, in ordine: `wrangler login` → `wrangler d1 create ale-style-loyalty` (il `database_id` va in `wrangler.jsonc`) → `wrangler d1 execute ale-style-loyalty --remote --file=schema.sql` → `wrangler secret put AUTH_SECRET` e `ADMIN_PASSWORD` (e `FCM_PROJECT_ID`, `FCM_CLIENT_EMAIL`, `FCM_PRIVATE_KEY` per le push) → `npm run deploy`. Fatto tutto tranne i segreti `FCM_*`.
