@@ -190,11 +190,24 @@ export async function getLastSpunAtForCustomer(db: D1Database, customerId: numbe
   return row ? sqliteTimestampToIso(row.spun_at) : null;
 }
 
-export async function recordSpin(db: D1Database, customerId: number, prizeId: number): Promise<Spin> {
-  const row = await db
-    .prepare("INSERT INTO spins (customer_id, prize_id) VALUES (?, ?) RETURNING *")
-    .bind(customerId, prizeId)
-    .first<Spin>();
+export async function recordSpin(
+  db: D1Database,
+  customerId: number,
+  prizeId: number,
+  bonusPoints?: { delta: number; reason: string },
+): Promise<Spin> {
+  const insertSpin = db.prepare("INSERT INTO spins (customer_id, prize_id) VALUES (?, ?) RETURNING *").bind(customerId, prizeId);
+  const statements = [insertSpin];
+  if (bonusPoints) {
+    // stessa batch del giro: o si registrano entrambi o nessuno dei due
+    statements.push(
+      db
+        .prepare("INSERT INTO points_log (customer_id, delta, reason) VALUES (?, ?, ?)")
+        .bind(customerId, bonusPoints.delta, bonusPoints.reason),
+    );
+  }
+  const [spinResult] = await db.batch<Spin>(statements);
+  const row = spinResult?.results[0];
   if (!row) throw new Error("failed to record spin");
   return row;
 }
@@ -204,7 +217,7 @@ export async function listWonPrizes(db: D1Database, customerId: number): Promise
     .prepare(
       `SELECT s.id, p.label, p.type, p.value, s.spun_at, s.redeemed_at
        FROM spins s JOIN prizes p ON p.id = s.prize_id
-       WHERE s.customer_id = ? AND p.type != 'none'
+       WHERE s.customer_id = ? AND p.type = 'discount'
        ORDER BY s.spun_at DESC, s.id DESC`,
     )
     .bind(customerId)
@@ -223,7 +236,7 @@ export async function getWonSpin(
   const row = await db
     .prepare(
       `SELECT s.spun_at, s.redeemed_at FROM spins s JOIN prizes p ON p.id = s.prize_id
-       WHERE s.id = ? AND p.type != 'none'`,
+       WHERE s.id = ? AND p.type = 'discount'`,
     )
     .bind(spinId)
     .first<{ spun_at: string; redeemed_at: string | null }>();

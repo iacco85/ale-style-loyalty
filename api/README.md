@@ -53,13 +53,15 @@ Server-authoritative (vedi CLAUDE.md — Sicurezza): il client non decide né in
 | Endpoint | Cosa fa |
 | --- | --- |
 | `GET /prizes` | Segmenti della ruota (`id`, `label`, `type`, `value`) in ordine stabile, **senza pesi**: serve all'app per disegnare la ruota senza rivelare le probabilità |
-| `GET /my-prizes` | Premi vinti dal cliente (esclusi i giri persi), dal più recente, con `expires_at` (30 giorni dalla vincita) e `status`: `available` (da usare), `redeemed` (usato in salone) o `expired` |
+| `GET /my-prizes` | Sconti vinti dal cliente (esclusi i giri persi e i premi a punti, già nel saldo), dal più recente, con `expires_at` (30 giorni dalla vincita) e `status`: `available` (da usare), `redeemed` (usato in salone) o `expired` |
 | `GET /spin/status` | `{ can_spin, next_spin_at }` — dice se il cliente autenticato può girare ora o quando potrà tornare a farlo |
 | `POST /spin` | Se il cooldown (7 giorni dall'ultimo spin del cliente) è scaduto, estrae un premio pesato tra quelli in `prizes` (`src/services/weightedDraw.ts`), lo registra in `spins` e lo restituisce. Altrimenti risponde `429` con `next_spin_at`. Risponde `500` se nessun premio è configurato |
 
 **Provare la ruota senza aspettare 7 giorni (solo sviluppo)**: in `.dev.vars` imposta `SPIN_COOLDOWN_DISABLED=true` e riavvia (`npm run dev`): il cooldown viene ignorato e `can_spin` resta sempre `true`. È già nel `.dev.vars.example`. Non va mai impostata in produzione: non è in `wrangler.jsonc` e non deve diventare un secret. Ogni spin scrive solo una riga in `spins`, non assegna punti né sconti, quindi i giri di prova non si accumulano in nessun saldo.
 
-**Premi vinti**: ogni premio vinto (tipo `discount` o `points`) vale **30 giorni** (`src/services/prizeExpiry.ts`) e si può usare una volta sola: la titolare lo segna come usato quando la cliente lo mostra in salone. Non c'è nessuna applicazione automatica di sconti o punti: il riscatto è manuale. Per aggiornare un D1 locale esistente: `ALTER TABLE spins ADD COLUMN redeemed_at TEXT`.
+**Premi a punti**: se esce un premio di tipo `points`, i punti vengono accreditati subito nel saldo (riga in `points_log` con motivo "Ruota della fortuna: …", nella stessa batch del giro, `src/services/wheelSpin.ts`) e non finiscono tra i premi da riscattare.
+
+**Premi vinti**: ogni sconto vinto (tipo `discount`) vale **30 giorni** (`src/services/prizeExpiry.ts`) e si può usare una volta sola: la titolare lo segna come usato quando la cliente lo mostra in salone. Non c'è nessuna applicazione automatica di sconti o punti: il riscatto è manuale. Per aggiornare un D1 locale esistente: `ALTER TABLE spins ADD COLUMN redeemed_at TEXT`.
 
 Logica pura testata TDD: `src/services/weightedDraw.ts` (estrazione pesata, incluso test statistico su 10000 estrazioni) e `src/services/spinCooldown.ts` (calcolo cooldown 7 giorni), entrambe in `test/services/`.
 
@@ -130,6 +132,7 @@ src/
     notifications.ts           # orchestrazione push per offerte singole/broadcast, chiama sendPush()
     weightedDraw.ts             # estrazione pesata di un premio dato un array {weight}
     spinCooldown.ts              # calcolo cooldown 7 giorni per lo spin
+    wheelSpin.ts                  # un giro completo: cooldown, estrazione, registrazione e accredito punti bonus
     prizeExpiry.ts                # scadenza (30 giorni) e stato di un premio vinto (pura)
     wonPrizes.ts                  # elenco premi vinti con stato e riscatto
   routes/                      # createRoute() + handler, un file per endpoint
