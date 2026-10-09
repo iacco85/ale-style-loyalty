@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Ale Style</string>
+    <string name="title_activity_main">Ale Style</string>
+    <string name="package_name">it.alestyle.loyalty</string>
+    <string name="custom_url_scheme">it.alestyle.loyalty</string>
+</resources>

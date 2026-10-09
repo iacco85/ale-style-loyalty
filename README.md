@@ -20,7 +20,7 @@ Tre componenti, che parlano solo tra loro attraverso un'API scritta da noi (ness
 | Componente | Stato |
 | --- | --- |
 | `api/` — Cloudflare Worker | 🟡 Login cliente, saldo punti, offerte, device token, endpoint admin (lista clienti, punti, offerte singole/broadcast con push, premi ruota) protetti da password condivisa, e ruota della fortuna server-authoritative (`POST /spin`, `GET /spin/status`, cooldown 7 giorni, estrazione pesata testata TDD). Documentato con Swagger. **Manca**: deploy su Cloudflare |
-| `app/` — App Android (Capacitor + Vue) | ⚪ Non ancora iniziato |
+| `app/` — App Android (Capacitor + Vue) | 🟡 Login, tessera punti, offerte, ruota con animazione e registrazione token push; piattaforma Android generata. **Manca**: `google-services.json` Firebase, prova su telefono reale |
 | `admin/` — Pannello web per la sorella (Vue) | 🟡 Login, lista/ricerca clienti, punti, offerte personali e broadcast, gestione premi ruota; verificato in locale contro l'API. **Manca**: deploy (Pages + CORS sul Worker) |
 
 🟢 fatto e verificato · 🟡 in corso/parziale · ⚪ non iniziato
@@ -31,7 +31,7 @@ Dalla root del repo:
 
 ```bash
 npm run setup   # solo la prima volta: installa le dipendenze di root, api/ e admin/
-npm run dev     # avvia API (http://localhost:8787) e pannello admin (http://localhost:5173) insieme
+npm run dev     # avvia API (:8787), pannello admin (:5173) e app nel browser (:5174) insieme
 ```
 
 Ctrl+C ferma entrambi. Password admin in locale: `ADMIN_PASSWORD` in `api/.dev.vars` (default `changeme-admin-password`).
@@ -57,7 +57,7 @@ ale-style-loyalty/
   CLAUDE.md         # convenzioni di codice per chi (o cosa) scrive in questo repo
   README.md          # questo file — il "cosa" e "a che punto siamo"
   api/                 # backend, Cloudflare Worker — vedi api/README.md
-  app/                  # (da creare) app Android Capacitor + Vue
+  app/                  # app Android Capacitor + Vue — vedi app/README.md
   admin/                 # pannello admin web Vue — vedi admin/README.md
 ```
 
@@ -68,4 +68,5 @@ Ogni sottocartella avrà un proprio README.md con i dettagli specifici (comandi,
 - [PLAN.md](PLAN.md) — perché queste scelte tecniche, cosa copre il pilot, come funziona la ruota della fortuna
 - [CLAUDE.md](CLAUDE.md) — convenzioni obbligatorie (TDD, single responsibility, ecc.) e best practice per lo stack
 - [api/README.md](api/README.md) — comandi, endpoint, autenticazione del backend
+- [app/README.md](app/README.md) — comandi e schermate dell'app Android
 - [admin/README.md](admin/README.md) — comandi e pagine del pannello admin
