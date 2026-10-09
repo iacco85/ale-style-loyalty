@@ -1,12 +1,10 @@
 <script setup lang="ts">
-import { ref } from "vue";
 import { listMyPrizes } from "../api";
-import { useAsyncAction } from "../composables/useAsyncAction";
+import { useLiveData } from "../composables/useLiveData";
 import { formatDay, formatExpiry } from "../formatDate";
 import type { WonPrize } from "../types";
 
-const { busy, error, run } = useAsyncAction();
-const prizes = ref<WonPrize[]>([]);
+const { data: prizes, busy, error } = useLiveData(listMyPrizes, [] as WonPrize[]);
 
 const statusLabels: Record<WonPrize["status"], string> = {
   available: "Da usare",
@@ -20,11 +18,6 @@ function detail(prize: WonPrize): string {
   return `Valido fino al ${formatExpiry(prize.expires_at)}`;
 }
 
-async function load() {
-  prizes.value = (await run(listMyPrizes)) ?? [];
-}
-
-load();
 </script>
 
 <template>

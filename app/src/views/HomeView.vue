@@ -1,20 +1,13 @@
 <script setup lang="ts">
-import { ref } from "vue";
 import { getProfile } from "../api";
 import LoyaltyBar from "../components/LoyaltyBar.vue";
-import { useAsyncAction } from "../composables/useAsyncAction";
 import { useBiometricLock } from "../composables/useBiometricLock";
+import { useLiveData } from "../composables/useLiveData";
 import { useSession } from "../composables/useSession";
-import type { Profile } from "../types";
 
 const { end } = useSession();
 const biometricLock = useBiometricLock();
-const { error, run } = useAsyncAction();
-const profile = ref<Profile>();
-
-async function load() {
-  profile.value = await run(getProfile);
-}
+const { data: profile, error } = useLiveData(getProfile);
 
 async function toggleBiometricLock(event: Event) {
   if (biometricLock.enabled.value) biometricLock.disable();
@@ -23,7 +16,6 @@ async function toggleBiometricLock(event: Event) {
   (event.target as HTMLInputElement).checked = biometricLock.enabled.value;
 }
 
-load();
 </script>
 
 <template>

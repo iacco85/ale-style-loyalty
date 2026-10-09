@@ -1,18 +1,10 @@
 <script setup lang="ts">
-import { ref } from "vue";
 import { listOffers } from "../api";
-import { useAsyncAction } from "../composables/useAsyncAction";
+import { useLiveData } from "../composables/useLiveData";
 import { formatDay } from "../formatDate";
 import type { Offer } from "../types";
 
-const { busy, error, run } = useAsyncAction();
-const offers = ref<Offer[]>([]);
-
-async function load() {
-  offers.value = (await run(listOffers)) ?? [];
-}
-
-load();
+const { data: offers, busy, error } = useLiveData(listOffers, [] as Offer[]);
 </script>
 
 <template>

@@ -26,6 +26,10 @@ Dopo ogni modifica a plugin o config nativa: `npx cap sync android`.
 | `/prizes` | **I tuoi premi** (`GET /my-prizes`): premi vinti alla ruota con stato *Da usare* / *Usato* / *Scaduto* e scadenza (30 giorni dalla vincita). Si usano mostrandoli in salone: li segna come usati la titolare dall'admin |
 | `/wheel` | Ruota della fortuna (SVG, `WheelDisc.vue`): i premi di `GET /prizes` sono **ripetuti in giro finché ci sono almeno 8 spicchi** (con 2 premi: 8 spicchi alternati) e ogni spicchio mostra il nome del premio, a capo su al massimo 2 righe da 16 caratteri (oltre si taglia con "…": meglio nomi sotto i 30 caratteri). Gli spicchi sono tutti uguali, quindi le probabilità reali restano private. La ruota si disegna con `GET /prizes`, `POST /spin` decide il premio **sul server**, l'app anima solo l'arresto sul segmento già deciso; `GET /spin/status` abilita/disabilita il pulsante |
 
+## Aggiornamento automatico dei dati
+
+Tessera, Offerte e Premi si aggiornano da sole (`useLiveData` + `useAutoRefresh`): rileggono i dati quando l'app torna in primo piano, quando la pagina torna visibile e ogni 30 secondi mentre è aperta. L'aggiornamento è silenzioso: non mostra caricamenti e, se la rete cade, lascia i dati già visibili senza errori. Se la sessione scade mentre si è su una pagina, l'app torna al login. La ruota non si aggiorna da sola per non cambiare gli spicchi durante un giro. La logica di caricamento è in `src/liveData.ts` (testata); le notifiche push per punti aggiunti e sconto sbloccato non sono ancora implementate.
+
 ## Sblocco biometrico
 
 Dopo il primo accesso la sessione resta salvata (non si rifà il login). Dalla Home la cliente può attivare lo **sblocco con impronta o volto**: da quel momento l'app mostra una schermata di blocco a ogni apertura e quando torna in primo piano dopo più di 60 secondi (`src/lockPolicy.ts`, testata). È solo un blocco locale sul telefono: non sostituisce il login, che resta telefono + PIN. Se la biometria fallisce o non è disponibile, "Accedi con il PIN" chiude la sessione e riporta al login.
@@ -40,7 +44,8 @@ src/
   wheelGeometry.ts      # logica pura: spicchi ripetuti, scelta dello spicchio, geometria SVG, angolo di arresto (TDD)
   lockPolicy.ts         # logica pura: quando bloccare al ritorno in primo piano (TDD)
   biometrics.ts         # unico punto che parla col plugin biometrico
-  composables/          # useSession (token in localStorage), useWheel, usePush, useBiometricLock, useAsyncAction
+  liveData.ts           # caricamento dati con aggiornamenti silenziosi in background (TDD)
+  composables/          # useLiveData, useAutoRefresh, useSession (token in localStorage), useWheel, usePush, useBiometricLock, useAsyncAction
   views/                # una view per rotta
 ```
 

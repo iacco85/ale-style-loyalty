@@ -1,18 +1,25 @@
 <script setup lang="ts">
 import { watch } from "vue";
+import { useRouter } from "vue-router";
 import LockScreen from "./components/LockScreen.vue";
 import { useBiometricLock } from "./composables/useBiometricLock";
 import { enablePush } from "./composables/usePush";
 import { useSession } from "./composables/useSession";
 
+const router = useRouter();
 const { isLoggedIn } = useSession();
 const biometricLock = useBiometricLock();
 
 biometricLock.init();
 
-watch(isLoggedIn, (loggedIn) => (loggedIn ? enablePush().catch(() => undefined) : biometricLock.disable()), {
-  immediate: true,
-});
+function onSessionChange(loggedIn: boolean) {
+  if (loggedIn) return enablePush().catch(() => undefined);
+  biometricLock.disable();
+  // sessione terminata (logout o token scaduto) mentre si è su una pagina protetta
+  router.replace({ name: "login" });
+}
+
+watch(isLoggedIn, onSessionChange, { immediate: true });
 </script>
 
 <template>
