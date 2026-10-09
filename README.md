@@ -21,7 +21,7 @@ Tre componenti, che parlano solo tra loro attraverso un'API scritta da noi (ness
 | --- | --- |
 | `api/` — Cloudflare Worker | 🟡 Login cliente, saldo punti, offerte, device token, endpoint admin (lista clienti, punti, offerte singole/broadcast con push, premi ruota) protetti da password condivisa, e ruota della fortuna server-authoritative (`POST /spin`, `GET /spin/status`, cooldown 7 giorni, estrazione pesata testata TDD). Documentato con Swagger. **Manca**: deploy su Cloudflare |
 | `app/` — App Android (Capacitor + Vue) | ⚪ Non ancora iniziato |
-| `admin/` — Pannello web per la sorella (Vue) | ⚪ Non ancora iniziato |
+| `admin/` — Pannello web per la sorella (Vue) | 🟡 Login, lista/ricerca clienti, punti, offerte personali e broadcast, gestione premi ruota; verificato in locale contro l'API. **Manca**: deploy (Pages + CORS sul Worker) |
 
 🟢 fatto e verificato · 🟡 in corso/parziale · ⚪ non iniziato
 
@@ -46,7 +46,7 @@ ale-style-loyalty/
   README.md          # questo file — il "cosa" e "a che punto siamo"
   api/                 # backend, Cloudflare Worker — vedi api/README.md
   app/                  # (da creare) app Android Capacitor + Vue
-  admin/                 # (da creare) pannello admin web Vue
+  admin/                 # pannello admin web Vue — vedi admin/README.md
 ```
 
 Ogni sottocartella avrà un proprio README.md con i dettagli specifici (comandi, come lanciarla, cosa fa) — questo file resta la mappa d'insieme.
@@ -56,3 +56,4 @@ Ogni sottocartella avrà un proprio README.md con i dettagli specifici (comandi,
 - [PLAN.md](PLAN.md) — perché queste scelte tecniche, cosa copre il pilot, come funziona la ruota della fortuna
 - [CLAUDE.md](CLAUDE.md) — convenzioni obbligatorie (TDD, single responsibility, ecc.) e best practice per lo stack
 - [api/README.md](api/README.md) — comandi, endpoint, autenticazione del backend
+- [admin/README.md](admin/README.md) — comandi e pagine del pannello admin
