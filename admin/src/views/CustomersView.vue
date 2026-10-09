@@ -54,6 +54,12 @@ load();
   align-items: center;
   color: inherit;
   text-decoration: none;
+  transition: border-color 0.3s, background 0.3s;
+}
+
+.row:hover {
+  border-color: var(--color-accent);
+  background: var(--color-surface-hover);
 }
 
 .row small {
@@ -61,7 +67,8 @@ load();
 }
 
 .points {
-  font-weight: 600;
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
   color: var(--color-accent);
 }
 </style>

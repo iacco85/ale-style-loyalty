@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import logo from "../assets/LogoAleStyle.jpg";
 import { useRouter } from "vue-router";
 import { checkPassword } from "../api";
 import { useAsyncAction } from "../composables/useAsyncAction";
@@ -20,7 +21,8 @@ async function submit() {
 
 <template>
   <form class="card login" @submit.prevent="submit">
-    <h1>Ale Style — Gestione</h1>
+    <img :src="logo" alt="Ale Style" class="logo" />
+    <h1>Area gestione</h1>
     <label>
       Password
       <input v-model="password" type="password" autocomplete="current-password" required />
@@ -35,6 +37,23 @@ async function submit() {
   display: grid;
   gap: 1rem;
   max-width: 360px;
-  margin: 4rem auto;
+  margin: 3rem auto;
+  text-align: center;
+}
+
+.logo {
+  width: 100%;
+}
+
+label {
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+label input {
+  margin-top: 0.4rem;
 }
 </style>

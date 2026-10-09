@@ -110,7 +110,8 @@ load();
 }
 
 .chance {
-  font-weight: 600;
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
   color: var(--color-accent);
 }
 
@@ -121,7 +122,7 @@ load();
 
 h2 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1.4rem;
 }
 
 .actions {

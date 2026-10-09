@@ -66,7 +66,7 @@ load();
 
 h2 {
   margin: 0 0 0.75rem;
-  font-size: 1.1rem;
+  font-size: 1.4rem;
 }
 
 .points-form {

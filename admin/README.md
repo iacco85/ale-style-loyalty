@@ -34,7 +34,8 @@ src/
   composables/     # useAuth (password in localStorage), useAsyncAction (busy/errore)
   components/      # OfferForm (condiviso da broadcast e dettaglio cliente)
   views/           # una view per rotta
-  styles/global.css  # variabili colore e reset
+  assets/          # logo Ale Style (stesso del sito)
+  styles/global.css  # variabili colore e reset — tema nero/oro come il sito, font Playfair Display + Lato (@fontsource, self-hosted)
 ```
 
 ## Note

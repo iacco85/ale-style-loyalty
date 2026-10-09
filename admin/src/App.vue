@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useRouter } from "vue-router";
+import logo from "./assets/LogoAleStyle.jpg";
 import { useAuth } from "./composables/useAuth";
 
 const router = useRouter();
@@ -13,7 +14,7 @@ async function logout() {
 
 <template>
   <header v-if="isLoggedIn" class="topbar">
-    <strong>Ale Style</strong>
+    <img :src="logo" alt="Ale Style" class="logo" />
     <nav>
       <RouterLink :to="{ name: 'customers' }">Clienti</RouterLink>
       <RouterLink :to="{ name: 'broadcast' }">Offerta a tutti</RouterLink>
@@ -31,31 +32,46 @@ async function logout() {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 1rem;
-  padding: 0.75rem 1rem;
-  background: var(--color-surface);
+  gap: 1rem 2rem;
+  padding: 0.75rem 1.5rem;
   border-bottom: 1px solid var(--color-border);
+}
+
+.logo {
+  height: 56px;
 }
 
 nav {
   display: flex;
   flex: 1;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem 2rem;
 }
 
 nav a {
-  color: var(--color-muted);
+  color: var(--color-text);
   text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding-bottom: 4px;
+  border-bottom: 1px solid transparent;
+  transition: color 0.3s, border-color 0.3s;
 }
 
-nav a.router-link-exact-active {
+nav a:hover {
   color: var(--color-accent);
-  font-weight: 600;
+}
+
+nav a.router-link-active {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
 }
 
 .page {
-  max-width: 720px;
+  max-width: 760px;
   margin: 0 auto;
-  padding: 1.5rem 1rem;
+  padding: 2rem 1.25rem 4rem;
 }
 </style>
