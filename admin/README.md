@@ -21,7 +21,8 @@ La password da usare in locale è `ADMIN_PASSWORD` in `api/.dev.vars` (default `
 | --- | --- |
 | `/login` | Inserisce la password admin; viene verificata con una chiamata reale all'API |
 | `/` | Lista clienti con saldo punti, ricerca per nome/telefono |
-| `/customers/:id` | Aggiunge (o sottrae) punti con motivo; crea un'offerta personale con push; vede i **premi vinti alla ruota** e li segna come usati (vale una volta sola, entro 30 giorni; chiede conferma), **azzera il PIN** di un cliente che l'ha dimenticato (chiede conferma: farlo solo dopo aver riconosciuto la persona) |
+| `/loyalty` | **Regola fedeltà**: ogni quanti punti si ottiene uno sconto e di quanti euro (default 100 punti = 5 €). Vale subito per tutti |
+| `/customers/:id` | Barra **fedeltà** del cliente con pulsante "Usa sconto" (scala dal saldo i punti di uno sconto, chiede conferma); aggiunge (o sottrae) punti con motivo; crea un'offerta personale con push; vede i **premi vinti alla ruota** e li segna come usati (vale una volta sola, entro 30 giorni; chiede conferma), **azzera il PIN** di un cliente che l'ha dimenticato (chiede conferma: farlo solo dopo aver riconosciuto la persona) |
 | `/broadcast` | Crea un'offerta per tutti i clienti con push |
 | `/prizes` | Elenco premi della ruota con probabilità calcolata dai pesi; crea e modifica premi |
 
@@ -32,7 +33,7 @@ src/
   http.ts          # fetch verso l'API con Bearer, errori tipizzati (ApiError) — testato
   api.ts           # una funzione per endpoint /admin/*; su 401 esegue il logout
   composables/     # useAuth (password in localStorage), useAsyncAction (busy/errore)
-  components/      # OfferForm (condiviso da broadcast e dettaglio cliente), WonPrizesList (premi vinti + riscatto)
+  components/      # OfferForm (condiviso da broadcast e dettaglio cliente), WonPrizesList (premi vinti + riscatto), LoyaltyCard + LoyaltyBar (barra fedeltà)
   views/           # una view per rotta
   assets/          # logo Ale Style (stesso del sito)
   styles/global.css  # variabili colore e reset — tema nero/oro come il sito, font Playfair Display + Lato (@fontsource, self-hosted)

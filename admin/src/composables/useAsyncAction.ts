@@ -6,6 +6,7 @@ const messages: Record<string, string> = {
   not_found: "Elemento non trovato",
   already_redeemed: "Premio già usato",
   expired: "Premio scaduto",
+  not_enough_points: "Punti insufficienti per uno sconto",
 };
 
 function messageFor(error: unknown): string {

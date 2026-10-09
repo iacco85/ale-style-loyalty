@@ -19,6 +19,7 @@ async function logout() {
       <RouterLink :to="{ name: 'customers' }">Clienti</RouterLink>
       <RouterLink :to="{ name: 'broadcast' }">Offerta a tutti</RouterLink>
       <RouterLink :to="{ name: 'prizes' }">Ruota</RouterLink>
+      <RouterLink :to="{ name: 'loyalty' }">Fedeltà</RouterLink>
     </nav>
     <button class="secondary" @click="logout">Esci</button>
   </header>

@@ -1,6 +1,6 @@
 import { currentPassword, useAuth } from "./composables/useAuth";
 import { ApiError, apiFetch } from "./http";
-import type { CustomerWithPoints, OfferInput, Prize, PrizeInput, WonPrize } from "./types";
+import type { CustomerWithPoints, LoyaltyRule, LoyaltySnapshot, OfferInput, Prize, PrizeInput, WonPrize } from "./types";
 
 async function authorized<T>(path: string, method?: "GET" | "POST" | "PUT", body?: unknown): Promise<T> {
   try {
@@ -26,6 +26,22 @@ export function addPoints(customerId: number, delta: number, reason?: string): P
 
 export function resetPin(customerId: number): Promise<{ ok: boolean }> {
   return authorized(`/admin/customers/${customerId}/reset-pin`, "POST");
+}
+
+export function getLoyaltyRule(): Promise<LoyaltyRule> {
+  return authorized("/admin/loyalty-rule");
+}
+
+export function setLoyaltyRule(rule: LoyaltyRule): Promise<LoyaltyRule> {
+  return authorized("/admin/loyalty-rule", "PUT", rule);
+}
+
+export function getCustomerLoyalty(customerId: number): Promise<LoyaltySnapshot> {
+  return authorized(`/admin/customers/${customerId}/loyalty`);
+}
+
+export function redeemReward(customerId: number): Promise<LoyaltySnapshot> {
+  return authorized(`/admin/customers/${customerId}/redeem-reward`, "POST");
 }
 
 export function listCustomerPrizes(customerId: number): Promise<WonPrize[]> {

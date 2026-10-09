@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { addPoints, createCustomerOffer, listCustomers, resetPin } from "../api";
+import LoyaltyCard from "../components/LoyaltyCard.vue";
 import OfferForm from "../components/OfferForm.vue";
 import WonPrizesList from "../components/WonPrizesList.vue";
 import { useAsyncAction } from "../composables/useAsyncAction";
@@ -14,6 +15,7 @@ const customer = ref<CustomerWithPoints>();
 const delta = ref(1);
 const reason = ref("");
 const pinResetDone = ref(false);
+const loyaltyKey = ref(0);
 
 async function load() {
   const customers = await run(() => listCustomers());
@@ -25,6 +27,7 @@ async function submitPoints() {
   if (result === undefined) return;
   reason.value = "";
   await load();
+  loyaltyKey.value++;
 }
 
 async function submitPinReset() {
@@ -46,6 +49,11 @@ load();
   <template v-if="customer">
     <h1>{{ customer.name }}</h1>
     <p class="muted">{{ customer.phone }} · <strong>{{ customer.points }} punti</strong></p>
+
+    <section class="card section">
+      <h2>Fedeltà</h2>
+      <LoyaltyCard :key="loyaltyKey" :customer-id="customerId" @redeemed="load" />
+    </section>
 
     <section class="card section">
       <h2>Punti</h2>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { getProfile } from "../api";
+import LoyaltyBar from "../components/LoyaltyBar.vue";
 import { useAsyncAction } from "../composables/useAsyncAction";
 import { useBiometricLock } from "../composables/useBiometricLock";
 import { useSession } from "../composables/useSession";
@@ -32,6 +33,21 @@ load();
   <section class="card points-card">
     <span class="label">I tuoi punti</span>
     <span class="points">{{ profile?.points ?? "–" }}</span>
+    <template v-if="profile">
+      <LoyaltyBar :percent="profile.loyalty.percent" />
+      <span class="progress">
+        {{ profile.loyalty.points_into_next }}/{{ profile.loyalty.points_per_reward }} ·
+        ti mancano {{ profile.loyalty.points_to_next }} punti per uno sconto da {{ profile.loyalty.reward_euros }} €
+      </span>
+    </template>
+  </section>
+
+  <section v-if="profile && profile.loyalty.rewards_available > 0" class="card reward">
+    <strong>
+      Hai {{ profile.loyalty.rewards_available }}
+      {{ profile.loyalty.rewards_available === 1 ? "sconto" : "sconti" }} da {{ profile.loyalty.reward_euros }} €
+    </strong>
+    <span class="muted">Chiedilo in salone al prossimo appuntamento</span>
   </section>
 
   <RouterLink :to="{ name: 'wheel' }" class="card link">
@@ -77,6 +93,25 @@ load();
   font-size: 4rem;
   color: var(--color-accent);
   line-height: 1;
+}
+
+.progress {
+  font-size: 0.9rem;
+  color: var(--color-muted);
+}
+
+.reward {
+  display: grid;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+  text-align: center;
+  border-color: var(--color-accent);
+}
+
+.reward strong {
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+  color: var(--color-accent);
 }
 
 .link {

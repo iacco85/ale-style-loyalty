@@ -4,8 +4,18 @@ export interface Customer {
   phone: string;
 }
 
+export interface Loyalty {
+  points_per_reward: number;
+  reward_euros: number;
+  rewards_available: number;
+  points_into_next: number;
+  points_to_next: number;
+  percent: number;
+}
+
 export interface Profile extends Customer {
   points: number;
+  loyalty: Loyalty;
 }
 
 export interface LoginResponse {

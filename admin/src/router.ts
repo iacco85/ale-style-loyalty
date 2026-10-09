@@ -3,6 +3,7 @@ import { useAuth } from "./composables/useAuth";
 import BroadcastView from "./views/BroadcastView.vue";
 import CustomerDetailView from "./views/CustomerDetailView.vue";
 import CustomersView from "./views/CustomersView.vue";
+import LoyaltyRuleView from "./views/LoyaltyRuleView.vue";
 import LoginView from "./views/LoginView.vue";
 import PrizesView from "./views/PrizesView.vue";
 
@@ -13,6 +14,7 @@ export const router = createRouter({
     { path: "/", name: "customers", component: CustomersView },
     { path: "/customers/:id", name: "customer", component: CustomerDetailView, props: true },
     { path: "/broadcast", name: "broadcast", component: BroadcastView },
+    { path: "/loyalty", name: "loyalty", component: LoyaltyRuleView },
     { path: "/prizes", name: "prizes", component: PrizesView },
   ],
 });

@@ -38,3 +38,16 @@ export interface WonPrize {
   expires_at: string;
   status: "available" | "redeemed" | "expired";
 }
+
+export interface LoyaltyRule {
+  points_per_reward: number;
+  reward_euros: number;
+}
+
+export interface LoyaltySnapshot extends LoyaltyRule {
+  points: number;
+  rewards_available: number;
+  points_into_next: number;
+  points_to_next: number;
+  percent: number;
+}

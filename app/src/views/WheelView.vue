@@ -6,7 +6,13 @@ import { formatDateTime } from "../formatDate";
 
 const { prizes, slices, status, rotation, spinning, result, canSpin, error, spin } = useWheel();
 
-const resultMessage = computed(() => (result.value?.type === "none" ? "Questa volta niente, riprova la prossima settimana!" : "Hai vinto!"));
+const resultMessages = {
+  none: "Questa volta niente, riprova la prossima settimana!",
+  discount: "Hai vinto!",
+  points: "Hai vinto dei punti! Sono già nel tuo saldo",
+};
+
+const resultMessage = computed(() => (result.value ? resultMessages[result.value.type] : ""));
 
 const nextSpinMessage = computed(() =>
   status.value.next_spin_at ? `Potrai girare di nuovo ${formatDateTime(status.value.next_spin_at)}` : "",
@@ -27,7 +33,7 @@ const nextSpinMessage = computed(() =>
   <section v-if="result" class="card result">
     <span class="muted">{{ resultMessage }}</span>
     <strong v-if="result.type !== 'none'">{{ result.label }}</strong>
-    <RouterLink v-if="result.type !== 'none'" :to="{ name: 'prizes' }" class="see-prizes">
+    <RouterLink v-if="result.type === 'discount'" :to="{ name: 'prizes' }" class="see-prizes">
       Lo trovi in "Premi", valido 30 giorni
     </RouterLink>
   </section>
