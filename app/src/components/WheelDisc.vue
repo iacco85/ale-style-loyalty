@@ -1,13 +1,23 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { labelTransform, slicePath, sliceTone, truncateLabel, spinDurationMs } from "../wheelGeometry";
+import { labelTransform, slicePath, sliceTone, spinDurationMs, wrapLabel } from "../wheelGeometry";
 import type { WheelSlice } from "../wheelGeometry";
 
 const props = defineProps<{ slices: WheelSlice[]; rotation: number }>();
 
 const center = 100;
 const radius = 96;
-const labelMaxLength = 17;
+const labelLineLength = 16;
+const labelMaxLines = 2;
+const lineHeight = 9;
+
+function labelLines(label: string): string[] {
+  return wrapLabel(label, labelLineLength, labelMaxLines);
+}
+
+function lineY(lineIndex: number, lineCount: number): number {
+  return center + (lineIndex - (lineCount - 1) / 2) * lineHeight;
+}
 
 const rotationDeg = computed(() => `${props.rotation}deg`);
 const duration = `${spinDurationMs}ms`;
@@ -20,11 +30,17 @@ const count = computed(() => props.slices.length);
       <path :d="slicePath(index, count, center, center, radius)" :class="`tone-${sliceTone(index, count)}`" />
       <text
         :x="center + radius - 8"
-        :y="center"
         :transform="labelTransform(index, count, center, center)"
         :class="`label label-${sliceTone(index, count)}`"
       >
-        {{ truncateLabel(slice.label, labelMaxLength) }}
+        <tspan
+          v-for="(line, lineIndex) in labelLines(slice.label)"
+          :key="lineIndex"
+          :x="center + radius - 8"
+          :y="lineY(lineIndex, labelLines(slice.label).length)"
+        >
+          {{ line }}
+        </tspan>
       </text>
     </g>
     <circle :cx="center" :cy="center" :r="radius" class="rim" />
@@ -54,7 +70,7 @@ const count = computed(() => props.slices.length);
 
 .label {
   font-family: var(--font-body);
-  font-size: 7.5px;
+  font-size: 8px;
   font-weight: 700;
   text-anchor: end;
   dominant-baseline: central;

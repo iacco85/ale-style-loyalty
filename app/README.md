@@ -23,7 +23,7 @@ Dopo ogni modifica a plugin o config nativa: `npx cap sync android`.
 | `/login` | Cellulare + **PIN a 4-6 cifre** (`POST /login`). Al primo accesso il PIN scelto diventa quello della cliente (e il nome serve solo allora). Dopo 5 PIN errati l'account si blocca 15 minuti; se lo dimentica, la titolare lo azzera dall'admin |
 | `/` | Saldo punti (`GET /me`), scorciatoie e interruttore **sblocco con impronta/volto** |
 | `/offers` | Offerte personali e broadcast (`GET /offers`) |
-| `/wheel` | Ruota della fortuna (SVG, `WheelDisc.vue`): i premi di `GET /prizes` sono **ripetuti in giro finché ci sono almeno 8 spicchi** (con 2 premi: 8 spicchi alternati) e ogni spicchio mostra il nome del premio (tagliato a 17 caratteri: meglio nomi brevi). Gli spicchi sono tutti uguali, quindi le probabilità reali restano private. La ruota si disegna con `GET /prizes`, `POST /spin` decide il premio **sul server**, l'app anima solo l'arresto sul segmento già deciso; `GET /spin/status` abilita/disabilita il pulsante |
+| `/wheel` | Ruota della fortuna (SVG, `WheelDisc.vue`): i premi di `GET /prizes` sono **ripetuti in giro finché ci sono almeno 8 spicchi** (con 2 premi: 8 spicchi alternati) e ogni spicchio mostra il nome del premio, a capo su al massimo 2 righe da 16 caratteri (oltre si taglia con "…": meglio nomi sotto i 30 caratteri). Gli spicchi sono tutti uguali, quindi le probabilità reali restano private. La ruota si disegna con `GET /prizes`, `POST /spin` decide il premio **sul server**, l'app anima solo l'arresto sul segmento già deciso; `GET /spin/status` abilita/disabilita il pulsante |
 
 ## Sblocco biometrico
 

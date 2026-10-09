@@ -7,7 +7,7 @@ import {
   slicePath,
   sliceTone,
   stopRotation,
-  truncateLabel,
+  wrapLabel,
 } from "../src/wheelGeometry";
 
 const prize = (id: number, label = `Premio ${id}`) => ({ id, label });
@@ -88,15 +88,36 @@ describe("slice geometry", () => {
   });
 });
 
-describe("truncateLabel", () => {
-  it("leaves short labels alone", () => {
-    expect(truncateLabel("Hai perso", 14)).toBe("Hai perso");
+describe("wrapLabel", () => {
+  it("keeps a short label on one line", () => {
+    expect(wrapLabel("Hai perso", 16, 2)).toEqual(["Hai perso"]);
   });
 
-  it("shortens long labels with an ellipsis within the limit", () => {
-    const result = truncateLabel("-15% sul prossimo servizio", 14);
-    expect(result).toHaveLength(14);
-    expect(result.endsWith("…")).toBe(true);
+  it("wraps long labels on word boundaries", () => {
+    expect(wrapLabel("-15% prossimo taglio", 16, 2)).toEqual(["-15% prossimo", "taglio"]);
+    expect(wrapLabel("Trattamento omaggio", 16, 2)).toEqual(["Trattamento", "omaggio"]);
+  });
+
+  it("never exceeds the maximum line length", () => {
+    const lines = wrapLabel("Sconto speciale sul prossimo trattamento", 16, 3);
+    expect(lines.every((line) => line.length <= 16)).toBe(true);
+  });
+
+  it("adds an ellipsis to the last line when the text does not fit in the allowed lines", () => {
+    const lines = wrapLabel("Sconto speciale sul prossimo trattamento completo", 16, 2);
+    expect(lines).toHaveLength(2);
+    expect(lines[1]?.endsWith("…")).toBe(true);
+    expect(lines[1]?.length).toBeLessThanOrEqual(16);
+  });
+
+  it("shortens a single word that is longer than a line", () => {
+    const [line] = wrapLabel("Supertrattamentoomaggio", 16, 2);
+    expect(line).toHaveLength(16);
+    expect(line?.endsWith("…")).toBe(true);
+  });
+
+  it("returns no lines for an empty label", () => {
+    expect(wrapLabel("  ", 16, 2)).toEqual([]);
   });
 });
 

@@ -54,8 +54,28 @@ export function labelTransform(index: number, count: number, cx: number, cy: num
   return `rotate(${sliceCenterAngle(index, count) - 90} ${cx} ${cy})`;
 }
 
-export function truncateLabel(label: string, maxLength: number): string {
-  return label.length <= maxLength ? label : `${label.slice(0, maxLength - 1)}…`;
+function ellipsize(text: string, maxLength: number): string {
+  return text.length <= maxLength ? text : `${text.slice(0, maxLength - 1)}…`;
+}
+
+function packWords(words: string[], maxLength: number): string[] {
+  const lines: string[] = [];
+  for (const word of words) {
+    const last = lines[lines.length - 1];
+    if (last !== undefined && last.length + 1 + word.length <= maxLength) lines[lines.length - 1] = `${last} ${word}`;
+    else lines.push(ellipsize(word, maxLength));
+  }
+  return lines;
+}
+
+export function wrapLabel(label: string, maxLength: number, maxLines: number): string[] {
+  const lines = packWords(label.split(/\s+/).filter(Boolean), maxLength);
+  if (lines.length <= maxLines) return lines;
+
+  const kept = lines.slice(0, maxLines);
+  const lastKept = kept[maxLines - 1] as string;
+  kept[maxLines - 1] = ellipsize(`${lastKept}…`, maxLength);
+  return kept;
 }
 
 interface StopRotationInput {
