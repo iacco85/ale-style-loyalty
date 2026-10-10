@@ -96,7 +96,11 @@ Logica pura testata TDD: `src/services/weightedDraw.ts` (estrazione pesata, incl
 | `npm test` | Esegue tutti i test (`vitest run`) — unit sui `services/` + integrazione sulle route con D1 reale (non mockato). Ambiente di test completamente separato da quello di `npm run dev`, non serve `.dev.vars` |
 | `npm run test:watch` | Stessi test, in watch mode (utile per il ciclo TDD) |
 | `npm run typecheck` | `tsc --noEmit`, nessun build necessario: `wrangler` transpila da TS direttamente in dev/deploy |
-| `npm run deploy` | `wrangler deploy` — pubblica il Worker su Cloudflare (richiede `wrangler login`, vedi Note) |
+| `npm run deploy` | `wrangler deploy` — pubblica il Worker su Cloudflare a mano (richiede `wrangler login`, vedi Note). Di norma non serve: il deploy parte da solo col push su GitHub (vedi "Deploy automatico") |
+
+## Deploy automatico
+
+Il Worker è collegato al repo GitHub con l'integrazione Git di Cloudflare (Workers Builds, dashboard → `ale-style-api` → Settings → Build): ogni push su `main` che tocca `api/*` esegue `npm test && npx wrangler deploy` nella cartella `api`. Se un test fallisce, il deploy non parte e l'API online resta quella di prima: l'esito e i log sono nella dashboard, sotto Deployments/Builds. I segreti restano quelli caricati con `wrangler secret put`, il build non li tocca. **Le migrazioni del D1 remoto restano manuali** (`wrangler d1 execute ... --remote`): vanno applicate prima di pushare il codice che le usa.
 
 ## CORS
 
