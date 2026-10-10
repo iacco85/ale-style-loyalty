@@ -254,16 +254,17 @@ Oggi il deploy è manuale da terminale: `npm run deploy` in `api/`, e `npm run b
 ## Prossimi passi
 
 1. **Prova su dispositivo** (passo 8): fatta sul tablet, push compresa; la biometria va provata su un telefono.
-2. **Difetti emersi dalla prova sul tablet** (sezione sopra): ruota che si aggiorna da sola, eliminazione dei premi e campo peso fatti il 10 ottobre 2026, da pubblicare e provare. Fatto e pubblicato anche l'intervallo della ruota impostabile dall'admin (0 = sempre).
+2. ✅ **Difetti emersi dalla prova sul tablet** (sezione sopra): ruota che si aggiorna da sola, eliminazione dei premi, campo peso e intervallo della ruota impostabile dall'admin (0 = sempre). Fatti, pubblicati e provati sul tablet il 10 ottobre 2026.
 3. **Icona dell'app e notifiche personalizzate** (sezione sopra).
 4. **Deploy automatico** di API e admin col push su GitHub (sezione sopra).
 5. **Navigazione dell'app** (sezione sopra): tasto indietro di Android, cronologia pulita, pulsanti indietro nelle schermate secondarie.
-6. 🟡 **Notifiche push sugli eventi utili**: fatte nel codice il 10 ottobre 2026, **da pubblicare** (deploy dell'API) e provare sul tablet.
+6. ✅ **Notifiche push sugli eventi utili**: fatte, pubblicate e provate sul tablet il 10 ottobre 2026.
    - **Punti aggiunti dall'admin** (solo `delta` positivo): saldo aggiornato, o "Hai sbloccato uno sconto di 5 €!" se l'aggiunta sblocca uno sconto.
    - **Conferma quando si usa** uno sconto fedeltà o un premio della ruota: fa da ricevuta, così uno sconto scalato per errore o alla cliente sbagliata si nota subito.
    - **Niente push** quando si tolgono punti a mano né per i punti vinti alla ruota.
    - **Toccando la notifica** si apre la schermata giusta (Offerte, Tessera, I tuoi premi), anche ad app chiusa. I testi sono in `api/src/services/pushMessages.ts`, le schermate in `app/src/pushScreen.ts`, entrambi testati.
    - **Resta da fare**: push per premio in scadenza (serve un cron).
+   - **Da valutare: avviso ad app aperta.** Con l'app in primo piano Android non mostra la notifica nella barra di sistema: la consegna all'app (evento `pushNotificationReceived`), che oggi la ignora. I dati arrivano comunque con l'aggiornamento automatico. Proposta: una striscia in alto dentro l'app con il testo della notifica, che si tocca per aprire la schermata giusta e sparisce da sola. In alternativa, `@capacitor/local-notifications` per mostrarla anche nella barra di sistema.
 7. **ORM (Drizzle)** al posto delle query SQL scritte a mano (sezione sopra), prima degli appuntamenti.
 8. **Gestione appuntamenti** (sezione sopra): prima rispondere alle domande aperte, poi progettare; calendario nell'admin, push di conferma, aggiunta al calendario del telefono.
 9. **Regole più strette sugli sconti** se servono (un solo sconto per appuntamento, scadenza degli sconti fedeltà).
