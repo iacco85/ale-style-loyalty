@@ -248,7 +248,11 @@ Fatte, guidate passo passo: Cloudflare (login, D1 `ale-style-loyalty`, schema re
 
 **Nuovo PC (Windows 11) — 9 ottobre 2026**: fatti clone, Node 24 LTS, dipendenze, `google-services.json`, `api/.dev.vars`; `npm run dev` e `npm run dev:fg` resi compatibili con Windows (restano compatibili con Linux). In PowerShell serve `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`, altrimenti `npm` è bloccato. Fatti anche `wrangler login`, Android Studio e Java 21 (Temurin, richiesto da Gradle 8.14 di Capacitor 8: con il Java 25 incluso in Android Studio non compila). Dominio `api.alestyle.it` aggiunto al Worker. Il 10 ottobre 2026 creato anche `admin/.env.production.local` e fatta la prova sul tablet.
 
-## Deploy automatico di API e admin (da fare)
+## Deploy automatico di API e admin (API fatta, admin da fare)
+
+**Stato al 10 ottobre 2026:**
+- ✅ **API**: Worker collegato al repo (Workers Builds). Deploy command `npm test && npx wrangler deploy`, root `api`, watch path `api/*`, build dei branch non di produzione disattivati. È servito dare all'app GitHub "Cloudflare Workers and Pages" l'accesso al repo `ale-style-loyalty`. Primo deploy automatico riuscito, con i test eseguiti (visti nel log).
+- ⬜ **Admin**: si riparte dalla creazione del nuovo progetto Pages. In dashboard "Create application" apre il percorso **Worker**, quello che chiede un "Deploy command": bisogna invece prendere il link in fondo, "Looking to deploy Pages? Get started", poi "Import an existing Git repository". Valori: nome `alestyle-admin`, branch `main`, build `npm run build`, output `dist`, root `admin`, variabile `VITE_API_URL=https://api.alestyle.it`. Se il percorso Pages non si trova, ripiegare su un Worker con asset statici: serve un `admin/wrangler.jsonc` con `assets.directory: "dist"` e `not_found_handling: "single-page-application"`.
 
 Oggi il deploy è manuale da terminale: `npm run deploy` in `api/`, e `npm run build` + `npx wrangler pages deploy dist --project-name ale-style-admin` in `admin/`. Scelta dell'utente: **automatizzarlo con il push su GitHub**, come già fatto per il sito `ale-style`, usando l'integrazione Git di Cloudflare (non GitHub Actions, così non serve un token API di Cloudflare su GitHub).
 
@@ -262,7 +266,7 @@ Oggi il deploy è manuale da terminale: `npm run deploy` in `api/`, e `npm run b
 1. **Prova su dispositivo** (passo 8): fatta sul tablet, push compresa; la biometria va provata su un telefono.
 2. ✅ **Difetti emersi dalla prova sul tablet** (sezione sopra): ruota che si aggiorna da sola, eliminazione dei premi, campo peso e intervallo della ruota impostabile dall'admin (0 = sempre). Fatti, pubblicati e provati sul tablet il 10 ottobre 2026.
 3. ✅ **Icona dell'app e notifiche personalizzate** (sezione sopra): fatte e installate sul tablet il 10 ottobre 2026.
-4. **Deploy automatico** di API e admin col push su GitHub (sezione sopra).
+4. 🟡 **Deploy automatico** di API e admin col push su GitHub (sezione sopra): API fatta, admin da fare.
 5. **Navigazione dell'app** (sezione sopra): tasto indietro di Android, cronologia pulita, pulsanti indietro nelle schermate secondarie.
 6. ✅ **Notifiche push sugli eventi utili**: fatte, pubblicate e provate sul tablet il 10 ottobre 2026.
    - **Punti aggiunti dall'admin** (solo `delta` positivo): saldo aggiornato, o "Hai sbloccato uno sconto di 5 €!" se l'aggiunta sblocca uno sconto.
