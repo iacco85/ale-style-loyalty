@@ -141,6 +141,13 @@ Cosa va deciso e fatto:
 - **Nell'admin non si possono eliminare i premi della ruota**: manca sia il pulsante sia l'endpoint. Un premio già vinto è citato da `spins` e da "I tuoi premi", quindi non si cancella davvero: va **disattivato** (colonna `active`, migrazione D1), sparisce dalla ruota e dall'estrazione ma resta nello storico. Si può cancellare per davvero solo un premio mai uscito. Serve una conferma prima di eliminare. L'estrazione pesata (TDD) deve ignorare i premi disattivati.
 - **Il campo "peso" non è chiaro**: è un numero senza etichetta, "Peso" è solo il testo segnaposto che sparisce quando si scrive, e la probabilità si vede solo dopo aver salvato. Da rendere comprensibile per la titolare: etichetta visibile con una spiegazione breve, e **anteprima della probabilità in percentuale mentre si modifica** (calcolata sul totale con il nuovo valore). Valutare un selettore a livelli (es. "raro / medio / frequente") al posto del numero libero.
 
+- **Ogni quanto si può girare la ruota va deciso dall'admin** (richiesta dell'utente). Oggi sono 7 giorni fissi nel codice (`COOLDOWN_DAYS` in `services/spinCooldown.ts`). Come farlo:
+  - salvare l'intervallo in giorni in D1, in una nuova tabella a riga unica `wheel_settings` (default 7, minimo 1), come per la regola fedeltà;
+  - `getSpinAvailability` riceve l'intervallo come parametro, con test TDD prima;
+  - nella pagina Ruota dell'admin, un campo "La cliente può girare ogni N giorni".
+  - Un cambio vale subito per tutte: il prossimo giro si calcola dall'ultimo giro fatto più il nuovo intervallo.
+  - Il flag di sviluppo `SPIN_COOLDOWN_DISABLED` resta.
+  - Da valutare con gli appuntamenti: un giro per ogni visita invece che a tempo.
 - **Dalla notifica non si capisce quale app l'ha mandata**: la prima push vera è arrivata (offerta creata dall'admin, app chiusa), ma l'app ha ancora l'**icona predefinita di Capacitor** (la X blu) e nessuna icona dedicata alle notifiche, quindi Android ne mostra solo la sagoma. Da fare: icona dell'app col logo Ale Style (generata dal logo con `@capacitor/assets` per tutte le densità e per l'icona adattiva) e un'**icona per le notifiche** bianca su sfondo trasparente, collegata nel manifest (`com.google.firebase.messaging.default_notification_icon`), con il colore oro del tema (`default_notification_color`).
 - **Toccando la notifica l'app si apre sulla Home**: deve aprire la sezione giusta, per le offerte **Offerte**. La push porta nei `data` la destinazione (es. `route: "/offers"`), decisa dal Worker in `notifications.ts`, e l'app ascolta `pushNotificationActionPerformed` in `usePush` e naviga lì. Deve funzionare anche ad app chiusa (avvio a freddo: navigare dopo login o sblocco, non prima) e servirà anche per le push sui punti (→ Tessera).
 
@@ -220,7 +227,7 @@ Oggi il deploy è manuale da terminale: `npm run deploy` in `api/`, e `npm run b
 ## Prossimi passi
 
 1. **Prova su dispositivo** (passo 8): fatta sul tablet, push compresa; la biometria va provata su un telefono.
-2. **Difetti emersi dalla prova sul tablet** (sezione sopra): ruota che si aggiorna da sola, eliminazione dei premi, campo peso comprensibile, notifica che apre la sezione giusta.
+2. **Difetti emersi dalla prova sul tablet** (sezione sopra): ruota che si aggiorna da sola, eliminazione dei premi, campo peso comprensibile, intervallo della ruota impostabile dall'admin, notifica che apre la sezione giusta.
 3. **Icona dell'app e notifiche personalizzate** (sezione sopra).
 4. **Deploy automatico** di API e admin col push su GitHub (sezione sopra).
 5. **Navigazione dell'app** (sezione sopra): tasto indietro di Android, cronologia pulita, pulsanti indietro nelle schermate secondarie.
