@@ -240,7 +240,7 @@ Fatte, guidate passo passo: Cloudflare (login, D1 `ale-style-loyalty`, schema re
 - La chiave privata del service account Firebase (file `...adminsdk...json`) **non va copiata** sul nuovo PC: il Worker la ha già. Va tolta dai Download del PC di lavoro.
 - Installare Android Studio, abilitare il debug USB sul telefono, poi `npm run android` nella cartella `app/`.
 
-**Nuovo PC (Windows 11) — 9 ottobre 2026**: fatti clone, Node 24 LTS, dipendenze, `google-services.json`, `api/.dev.vars`; `npm run dev` e `npm run dev:fg` resi compatibili con Windows (restano compatibili con Linux). In PowerShell serve `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`, altrimenti `npm` è bloccato. Fatti anche `wrangler login`, Android Studio e Java 21 (Temurin, richiesto da Gradle 8.14 di Capacitor 8: con il Java 25 incluso in Android Studio non compila). Dominio `api.alestyle.it` aggiunto al Worker. Mancano: `admin/.env.production.local`, compilazione e prova sul telefono.
+**Nuovo PC (Windows 11) — 9 ottobre 2026**: fatti clone, Node 24 LTS, dipendenze, `google-services.json`, `api/.dev.vars`; `npm run dev` e `npm run dev:fg` resi compatibili con Windows (restano compatibili con Linux). In PowerShell serve `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`, altrimenti `npm` è bloccato. Fatti anche `wrangler login`, Android Studio e Java 21 (Temurin, richiesto da Gradle 8.14 di Capacitor 8: con il Java 25 incluso in Android Studio non compila). Dominio `api.alestyle.it` aggiunto al Worker. Il 10 ottobre 2026 creato anche `admin/.env.production.local` e fatta la prova sul tablet.
 
 ## Deploy automatico di API e admin (da fare)
 
