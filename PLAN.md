@@ -149,7 +149,7 @@ Cosa va deciso e fatto:
   - Il flag di sviluppo `SPIN_COOLDOWN_DISABLED` resta.
   - **Deciso dall'utente**: con gli appuntamenti la ruota si sblocca **dopo ogni appuntamento segnato come fatto** (vedi "Gestione appuntamenti"). L'intervallo in giorni serve quindi solo finché gli appuntamenti non esistono: da decidere se farlo comunque o aspettare direttamente gli appuntamenti.
 - **Dalla notifica non si capisce quale app l'ha mandata**: la prima push vera è arrivata (offerta creata dall'admin, app chiusa), ma l'app ha ancora l'**icona predefinita di Capacitor** (la X blu) e nessuna icona dedicata alle notifiche, quindi Android ne mostra solo la sagoma. Da fare: icona dell'app col logo Ale Style (generata dal logo con `@capacitor/assets` per tutte le densità e per l'icona adattiva) e un'**icona per le notifiche** bianca su sfondo trasparente, collegata nel manifest (`com.google.firebase.messaging.default_notification_icon`), con il colore oro del tema (`default_notification_color`).
-- **Toccando la notifica l'app si apre sulla Home**: deve aprire la sezione giusta, per le offerte **Offerte**. La push porta nei `data` la destinazione (es. `route: "/offers"`), decisa dal Worker in `notifications.ts`, e l'app ascolta `pushNotificationActionPerformed` in `usePush` e naviga lì. Deve funzionare anche ad app chiusa (avvio a freddo: navigare dopo login o sblocco, non prima) e servirà anche per le push sui punti (→ Tessera).
+- ✅ **Toccando la notifica l'app si apre sulla Home** (fatto il 10 ottobre 2026, da provare dopo il deploy): deve aprire la sezione giusta, per le offerte **Offerte**. La push porta nei `data` la destinazione (es. `route: "/offers"`), decisa dal Worker in `notifications.ts`, e l'app ascolta `pushNotificationActionPerformed` in `usePush` e naviga lì. Deve funzionare anche ad app chiusa (avvio a freddo: navigare dopo login o sblocco, non prima) e servirà anche per le push sui punti (→ Tessera).
 
 ## Icona dell'app e notifiche personalizzate (da fare)
 
@@ -193,6 +193,26 @@ Richiesta dell'utente: è una funzionalità nuova e più grande delle altre, va 
 4. Servizi e durate: elenco fisso configurabile dall'admin o testo libero?
 5. Le clienti che non hanno l'app: si registra solo il nome, senza notifica?
 
+## ORM al posto delle query SQL scritte a mano (da fare, dopo)
+
+Richiesta dell'utente: oggi `api/src/db.ts` contiene le query come stringhe SQL. Sono sicure, perché sempre parametrizzate con `.bind()`, ma sono scomode da mantenere:
+- i tipi dei risultati sono dichiarati a mano (`.first<T>()`) e TypeScript non si accorge se la query e il tipo non corrispondono;
+- un nome di colonna sbagliato si scopre solo eseguendo la query;
+- lo schema vive in `schema.sql` separato dal codice.
+
+Proposta: **Drizzle ORM** (`drizzle-orm` + `drizzle-kit`).
+- Supporta D1 nativamente e gira nei Worker senza dipendenze pesanti.
+- Le query restano vicine all'SQL, con i tipi dedotti dallo schema. È coerente con la regola "inferenza dei tipi sempre".
+- Lo schema diventa codice TypeScript (`schema.ts`), e `drizzle-kit` genera le migrazioni SQL che si applicano con `wrangler d1 migrations apply`, come previsto per le evoluzioni di D1.
+- Alternativa più leggera da valutare: **Kysely** (solo query builder tipizzato, senza gestione dello schema).
+
+Come procedere:
+- Si fa **prima della gestione appuntamenti**, che aggiunge tabelle e query nuove: conviene scriverle già con l'ORM.
+- Passaggio graduale, una tabella o un gruppo di funzioni di `db.ts` alla volta, senza cambiare le firme usate dai `services`. I test sulle route con D1 reale fanno da rete di sicurezza.
+- Va scritto lo schema Drizzle identico a quello di produzione e generata una **migrazione iniziale vuota** (baseline), così il D1 remoto non viene toccato.
+- `npm run dev` e il setup dei test (`test/setup.ts`, che oggi applica `schema.sql`) vanno adattati alle migrazioni.
+- Aggiornare il README di `api/` e CLAUDE.md (sezione D1).
+
 ## Come procediamo con le configurazioni
 
 Scelta dell'utente: le configurazioni fuori dal codice (account e servizi esterni) si fanno **guidati passo passo**, non tutte insieme.
@@ -234,20 +254,20 @@ Oggi il deploy è manuale da terminale: `npm run deploy` in `api/`, e `npm run b
 ## Prossimi passi
 
 1. **Prova su dispositivo** (passo 8): fatta sul tablet, push compresa; la biometria va provata su un telefono.
-2. **Difetti emersi dalla prova sul tablet** (sezione sopra): ruota che si aggiorna da sola, eliminazione dei premi, campo peso comprensibile, intervallo della ruota impostabile dall'admin, notifica che apre la sezione giusta.
+2. **Difetti emersi dalla prova sul tablet** (sezione sopra): ruota che si aggiorna da sola, eliminazione dei premi, campo peso comprensibile, intervallo della ruota impostabile dall'admin.
 3. **Icona dell'app e notifiche personalizzate** (sezione sopra).
 4. **Deploy automatico** di API e admin col push su GitHub (sezione sopra).
 5. **Navigazione dell'app** (sezione sopra): tasto indietro di Android, cronologia pulita, pulsanti indietro nelle schermate secondarie.
-6. **Notifiche push** sugli eventi utili: punti aggiunti, sconto sbloccato (e, in futuro, premio in scadenza). Toccandole l'app si apre sulla pagina giusta; l'aggiornamento automatico resta la fonte affidabile dei dati, la push è solo un avviso. **Prima da fare: push quando l'admin aggiunge punti** (richiesta dopo la prova sul tablet). Oggi `POST /admin/customers/:id/points` registra solo i punti. Come farla:
-   - Solo per `delta` positivo: niente push quando si tolgono punti a mano né per i punti vinti alla ruota (lì la cliente è già nell'app). "Usa sconto" ha la sua notifica (punto sotto).
-   - **Push anche quando si usa uno sconto o un premio** (deciso dall'utente): quando la titolare preme "Usa sconto" (sconti fedeltà) o segna come usato un premio vinto alla ruota, la cliente riceve una conferma, es. "Hai usato uno sconto di 5 €, ti restano 40 punti" oppure "Hai usato il premio «-15% prossimo servizio»". Fa da ricevuta: se lo sconto è stato scalato per errore o alla cliente sbagliata, se ne accorge subito. Toccandola si apre la Tessera o I tuoi premi. Testi costruiti da funzioni pure scritte in TDD, come per i punti.
-   - Testo costruito da una funzione pura scritta in TDD, che riceve i punti aggiunti e lo stato fedeltà prima e dopo (`getCustomerLoyalty`). Esempio: titolo "Hai ricevuto 10 punti", testo "Ora hai 60 punti: ne mancano 40 per il prossimo sconto di 5 €". Se l'aggiunta sblocca uno sconto: "Hai sbloccato uno sconto di 5 €!". Così copre anche la push "sconto sbloccato".
-   - Nel servizio, la registrazione dei punti restituisce lo stato prima e dopo. In `notifications.ts` la funzione generica per singolo cliente (oggi `notifyCustomerOffer`) va rinominata `notifyCustomer`.
-   - Invio con `waitUntil`, così il pannello risponde subito anche se FCM è lento. L'invio resta best-effort come per le offerte.
-   - Aggiornare il README di `api/` (endpoint punti e `notifications.ts`).
-7. **Gestione appuntamenti** (sezione sopra): prima rispondere alle domande aperte, poi progettare; calendario nell'admin, push di conferma, aggiunta al calendario del telefono.
-8. **Regole più strette sugli sconti** se servono (un solo sconto per appuntamento, scadenza degli sconti fedeltà).
-9. Poi la **Fase 2** qui sotto.
+6. 🟡 **Notifiche push sugli eventi utili**: fatte nel codice il 10 ottobre 2026, **da pubblicare** (deploy dell'API) e provare sul tablet.
+   - **Punti aggiunti dall'admin** (solo `delta` positivo): saldo aggiornato, o "Hai sbloccato uno sconto di 5 €!" se l'aggiunta sblocca uno sconto.
+   - **Conferma quando si usa** uno sconto fedeltà o un premio della ruota: fa da ricevuta, così uno sconto scalato per errore o alla cliente sbagliata si nota subito.
+   - **Niente push** quando si tolgono punti a mano né per i punti vinti alla ruota.
+   - **Toccando la notifica** si apre la schermata giusta (Offerte, Tessera, I tuoi premi), anche ad app chiusa. I testi sono in `api/src/services/pushMessages.ts`, le schermate in `app/src/pushScreen.ts`, entrambi testati.
+   - **Resta da fare**: push per premio in scadenza (serve un cron).
+7. **ORM (Drizzle)** al posto delle query SQL scritte a mano (sezione sopra), prima degli appuntamenti.
+8. **Gestione appuntamenti** (sezione sopra): prima rispondere alle domande aperte, poi progettare; calendario nell'admin, push di conferma, aggiunta al calendario del telefono.
+9. **Regole più strette sugli sconti** se servono (un solo sconto per appuntamento, scadenza degli sconti fedeltà).
+10. Poi la **Fase 2** qui sotto.
 
 ## Backlog — Fase 2 (dopo il pilot base)
 
