@@ -2,6 +2,7 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { createOffer } from "../../db";
 import { adminAuthMiddleware } from "../../middleware/adminAuth";
 import { notifyBroadcastOffer } from "../../services/notifications";
+import { offerMessage } from "../../services/pushMessages";
 import type { Env, Variables } from "../../types";
 
 const errorSchema = z.object({ error: z.string() });
@@ -53,7 +54,7 @@ broadcast.openapi(broadcastRoute, async (c) => {
   const { title, description } = c.req.valid("json");
 
   const offer = await createOffer(c.env.DB, null, title, description);
-  await notifyBroadcastOffer(c.env, c.env.DB, { title: offer.title, body: offer.description ?? offer.title });
+  await notifyBroadcastOffer(c.env, c.env.DB, offerMessage(offer));
 
   return c.json(offer, 201);
 });

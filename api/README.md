@@ -29,7 +29,9 @@ Basta questo: `npm run dev` crea da solo `.dev.vars` (se manca, copiandolo da `.
    `FCM_PRIVATE_KEY` va incollata su una riga sola, lasciando i `\n` letterali così come sono nel json (il codice li converte). Vedi `.dev.vars.example` per il formato esatto.
 3. Firebase Cloud Messaging è gratuito (piano Spark), non serve attivare fatturazione.
 
-`sendPush()` firma un JWT del service account (RS256, Web Crypto — nessuna libreria esterna), lo scambia per un access token OAuth2, e chiama l'API HTTP v1 di FCM. È invocato da `src/services/notifications.ts` quando un endpoint admin crea un'offerta (singola o broadcast): l'invio è best-effort, un fallimento su un device token non blocca gli altri né la creazione dell'offerta.
+`sendPush()` firma un JWT del service account (RS256, Web Crypto — nessuna libreria esterna), lo scambia per un access token OAuth2, e chiama l'API HTTP v1 di FCM. È invocato da `src/services/notifications.ts` quando un endpoint admin crea un'offerta (singola o broadcast), aggiunge punti, usa uno sconto fedeltà o segna un premio come usato: l'invio è best-effort, un fallimento su un device token non blocca gli altri né l'operazione. Per punti e riscatti la push parte con `waitUntil`, dopo la risposta, così il pannello non aspetta FCM.
+
+Titolo e testo di ogni push li scrive `src/services/pushMessages.ts` (funzioni pure, testate). Ogni push porta nei `data` la chiave `screen` (`home`, `offers` o `prizes`): toccando la notifica l'app apre quella schermata. Il contratto con l'app è in `app/src/pushScreen.ts`.
 
 ## Pannello admin (`/admin/*`)
 
@@ -40,11 +42,11 @@ Autenticazione minima per il pilot (un solo utente, la sorella): password condiv
 | `GET /admin/customers?search=` | Lista clienti con saldo punti calcolato; `search` filtra per nome o telefono |
 | `GET /admin/loyalty-rule` / `PUT /admin/loyalty-rule` | Regola fedeltà: ogni `points_per_reward` punti, `reward_euros` euro di sconto (default 100 → 5 €). Cambiarla vale subito per tutti |
 | `GET /admin/customers/:id/loyalty` | Saldo punti e avanzamento verso il prossimo sconto |
-| `POST /admin/customers/:id/redeem-reward` | Usa gli sconti fedeltà scalando i punti dal saldo (una sola riga negativa in `points_log`). Corpo opzionale `{ "all": true }`: usa **tutti** gli sconti sbloccati, altrimenti ne usa uno. Risponde con lo stato aggiornato più `redeemed_count` e `redeemed_euros`. `409 not_enough_points` se non ce ne sono |
+| `POST /admin/customers/:id/redeem-reward` | Usa gli sconti fedeltà scalando i punti dal saldo (una sola riga negativa in `points_log`). Corpo opzionale `{ "all": true }`: usa **tutti** gli sconti sbloccati, altrimenti ne usa uno. Risponde con lo stato aggiornato più `redeemed_count` e `redeemed_euros`. `409 not_enough_points` se non ce ne sono. Invia al cliente una push di conferma |
 | `GET /admin/customers/:id/prizes` | Premi vinti da quel cliente alla ruota, con `status` e scadenza |
-| `POST /admin/spins/:id/redeem` | Segna un premio come usato (`id` = quello di `GET .../prizes`). `409 already_redeemed` se già usato, `409 expired` se scaduto, `404` se non esiste o è un giro perso |
+| `POST /admin/spins/:id/redeem` | Segna un premio come usato (`id` = quello di `GET .../prizes`). `409 already_redeemed` se già usato, `409 expired` se scaduto, `404` se non esiste o è un giro perso. Invia al cliente una push di conferma |
 | `POST /admin/customers/:id/reset-pin` | Azzera il PIN e sblocca l'account: il cliente sceglie un nuovo PIN al prossimo accesso |
-| `POST /admin/customers/:id/points` | Aggiunge una riga a `points_log` (`delta` positivo o negativo + `reason` opzionale) |
+| `POST /admin/customers/:id/points` | Aggiunge una riga a `points_log` (`delta` positivo o negativo + `reason` opzionale). Se `delta` è positivo invia una push con il nuovo saldo o lo sconto sbloccato |
 | `POST /admin/customers/:id/offers` | Crea un'offerta per quel cliente e invia la push ai suoi device token registrati |
 | `POST /admin/broadcast` | Crea un'offerta broadcast (`customer_id` null, visibile a tutti via `GET /offers`) e invia la push a tutti i device token registrati |
 | `GET /admin/prizes` / `POST /admin/prizes` / `PUT /admin/prizes/:id` | CRUD dei premi della ruota della fortuna (label, tipo, valore, peso), usati da `POST /spin` per l'estrazione |
@@ -136,7 +138,8 @@ src/
     points.ts                 # calcolo saldo punti da points_log
     token.ts                   # firma/verifica token (HMAC-SHA256, stateless)
     timingSafeEqual.ts         # confronto stringhe a tempo costante (password admin)
-    notifications.ts           # orchestrazione push per offerte singole/broadcast, chiama sendPush()
+    notifications.ts           # invio push a un cliente o a tutti, chiama sendPush()
+    pushMessages.ts            # titolo, testo e schermata di ogni push (pura)
     weightedDraw.ts             # estrazione pesata di un premio dato un array {weight}
     spinCooldown.ts              # calcolo cooldown 7 giorni per lo spin
     wheelSpin.ts                  # un giro completo: cooldown, estrazione, registrazione e accredito punti bonus

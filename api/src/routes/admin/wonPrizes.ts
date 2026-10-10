@@ -1,6 +1,8 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { getCustomerById } from "../../db";
 import { adminAuthMiddleware } from "../../middleware/adminAuth";
+import { notifyCustomer } from "../../services/notifications";
+import { prizeRedeemedMessage } from "../../services/pushMessages";
 import { listWonPrizesWithStatus, redeemPrize } from "../../services/wonPrizes";
 import type { Env, Variables } from "../../types";
 import { wonPrizeSchema } from "../myPrizes";
@@ -54,8 +56,11 @@ adminWonPrizes.openapi(listRoute, async (c) => {
 adminWonPrizes.openapi(redeemRoute, async (c) => {
   const { id } = c.req.valid("param");
   const outcome = await redeemPrize(c.env.DB, id);
-  if (outcome === "not_found") return c.json({ error: "not_found" }, 404);
-  if (outcome !== "redeemed") return c.json({ error: outcome }, 409);
+  if (outcome.status === "not_found") return c.json({ error: "not_found" }, 404);
+  if (outcome.status !== "redeemed") return c.json({ error: outcome.status }, 409);
+
+  const { customer_id, label } = outcome.spin;
+  c.executionCtx.waitUntil(notifyCustomer(c.env, c.env.DB, customer_id, prizeRedeemedMessage(label)));
   return c.json({ ok: true }, 200);
 });
 

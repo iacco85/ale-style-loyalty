@@ -13,7 +13,7 @@ async function sendToTokens(credentials: PushCredentials, tokens: string[], noti
   );
 }
 
-export async function notifyCustomerOffer(
+export async function notifyCustomer(
   credentials: PushCredentials,
   db: D1Database,
   customerId: number,

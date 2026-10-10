@@ -1,7 +1,9 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { addPointsEntry, createOffer, getCustomerById, listCustomers, resetCustomerPin } from "../../db";
+import { createOffer, getCustomerById, listCustomers, resetCustomerPin } from "../../db";
 import { adminAuthMiddleware } from "../../middleware/adminAuth";
-import { notifyCustomerOffer } from "../../services/notifications";
+import { addCustomerPoints } from "../../services/customerLoyalty";
+import { notifyCustomer } from "../../services/notifications";
+import { offerMessage, pointsAddedMessage } from "../../services/pushMessages";
 import type { Env, Variables } from "../../types";
 
 const errorSchema = z.object({ error: z.string() });
@@ -42,6 +44,8 @@ const addPointsRoute = createRoute({
   path: "/admin/customers/{id}/points",
   tags: ["Admin"],
   summary: "Aggiungi (o sottrai) punti a un cliente",
+  description:
+    "Se `delta` è positivo invia al cliente una push con il nuovo saldo (o lo sconto sbloccato). La push è best-effort e parte dopo la risposta.",
   security: [{ Bearer: [] }],
   middleware: adminAuthMiddleware,
   request: {
@@ -141,7 +145,9 @@ adminCustomers.openapi(addPointsRoute, async (c) => {
   const customer = await getCustomerById(c.env.DB, id);
   if (!customer) return c.json({ error: "not_found" }, 404);
 
-  await addPointsEntry(c.env.DB, id, delta, reason);
+  const { before, after } = await addCustomerPoints(c.env.DB, id, delta, reason);
+  const message = pointsAddedMessage(delta, before, after);
+  if (message) c.executionCtx.waitUntil(notifyCustomer(c.env, c.env.DB, id, message));
   return c.json({ ok: true }, 200);
 });
 
@@ -163,7 +169,7 @@ adminCustomers.openapi(createOfferRoute, async (c) => {
   if (!customer) return c.json({ error: "not_found" }, 404);
 
   const offer = await createOffer(c.env.DB, id, title, description);
-  await notifyCustomerOffer(c.env, c.env.DB, id, { title: offer.title, body: offer.description ?? offer.title });
+  await notifyCustomer(c.env, c.env.DB, id, offerMessage(offer));
 
   return c.json({ ...offer, customer_id: id }, 201);
 });

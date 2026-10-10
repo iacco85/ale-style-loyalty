@@ -1,9 +1,11 @@
-import { getWonSpin, listWonPrizes, markSpinRedeemed } from "../db";
+import { type WonSpin, getWonSpin, listWonPrizes, markSpinRedeemed } from "../db";
 import type { WonPrize } from "../types";
 import { type PrizeStatus, getPrizeExpiry, getPrizeStatus } from "./prizeExpiry";
 
 export type WonPrizeWithStatus = WonPrize & { expires_at: string; status: PrizeStatus };
-export type RedeemOutcome = "redeemed" | "already_redeemed" | "expired" | "not_found";
+export type RedeemOutcome =
+  | { status: "redeemed"; spin: WonSpin }
+  | { status: "already_redeemed" | "expired" | "not_found" };
 
 export async function listWonPrizesWithStatus(
   db: D1Database,
@@ -20,12 +22,12 @@ export async function listWonPrizesWithStatus(
 
 export async function redeemPrize(db: D1Database, spinId: number, now = new Date()): Promise<RedeemOutcome> {
   const spin = await getWonSpin(db, spinId);
-  if (!spin) return "not_found";
+  if (!spin) return { status: "not_found" };
 
   const status = getPrizeStatus({ spunAt: spin.spun_at, redeemedAt: spin.redeemed_at }, now);
-  if (status === "redeemed") return "already_redeemed";
-  if (status === "expired") return "expired";
+  if (status === "redeemed") return { status: "already_redeemed" };
+  if (status === "expired") return { status: "expired" };
 
   // l'UPDATE condizionato protegge da due richieste contemporanee sullo stesso premio
-  return (await markSpinRedeemed(db, spinId)) ? "redeemed" : "already_redeemed";
+  return (await markSpinRedeemed(db, spinId)) ? { status: "redeemed", spin } : { status: "already_redeemed" };
 }

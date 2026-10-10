@@ -230,19 +230,19 @@ export async function listWonPrizes(db: D1Database, customerId: number): Promise
   }));
 }
 
-export async function getWonSpin(
-  db: D1Database,
-  spinId: number,
-): Promise<{ spun_at: string; redeemed_at: string | null } | null> {
+export type WonSpin = { customer_id: number; label: string; spun_at: string; redeemed_at: string | null };
+
+export async function getWonSpin(db: D1Database, spinId: number): Promise<WonSpin | null> {
   const row = await db
     .prepare(
-      `SELECT s.spun_at, s.redeemed_at FROM spins s JOIN prizes p ON p.id = s.prize_id
+      `SELECT s.customer_id, p.label, s.spun_at, s.redeemed_at FROM spins s JOIN prizes p ON p.id = s.prize_id
        WHERE s.id = ? AND p.type = 'discount'`,
     )
     .bind(spinId)
-    .first<{ spun_at: string; redeemed_at: string | null }>();
+    .first<WonSpin>();
   if (!row) return null;
   return {
+    ...row,
     spun_at: sqliteTimestampToIso(row.spun_at),
     redeemed_at: row.redeemed_at ? sqliteTimestampToIso(row.redeemed_at) : null,
   };

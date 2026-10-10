@@ -33,6 +33,17 @@ export async function getCustomerLoyalty(db: D1Database, customerId: number): Pr
   };
 }
 
+export async function addCustomerPoints(
+  db: D1Database,
+  customerId: number,
+  delta: number,
+  reason?: string,
+): Promise<{ before: LoyaltySnapshot; after: LoyaltySnapshot }> {
+  const before = await getCustomerLoyalty(db, customerId);
+  await addPointsEntry(db, customerId, delta, reason);
+  return { before, after: await getCustomerLoyalty(db, customerId) };
+}
+
 function redemptionReason(count: number, euros: number, total: number): string {
   return count === 1 ? `Sconto fedeltà di ${euros} €` : `Sconti fedeltà: ${count} × ${euros} € = ${total} €`;
 }

@@ -2,6 +2,8 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { getCustomerById, getLoyaltyRule, setLoyaltyRule } from "../../db";
 import { adminAuthMiddleware } from "../../middleware/adminAuth";
 import { getCustomerLoyalty, redeemLoyaltyRewards } from "../../services/customerLoyalty";
+import { notifyCustomer } from "../../services/notifications";
+import { loyaltyRedeemedMessage } from "../../services/pushMessages";
 import type { Env, Variables } from "../../types";
 import { loyaltySnapshotSchema } from "../loyaltySchema";
 
@@ -119,6 +121,9 @@ adminLoyalty.openapi(redeemRewardRoute, async (c) => {
   if (outcome.status === "not_enough_points") return c.json({ error: "not_enough_points" }, 409);
 
   const { snapshot, redeemedCount, redeemedEuros } = outcome;
+  c.executionCtx.waitUntil(
+    notifyCustomer(c.env, c.env.DB, id, loyaltyRedeemedMessage(redeemedCount, redeemedEuros, snapshot)),
+  );
   return c.json({ ...snapshot, redeemed_count: redeemedCount, redeemed_euros: redeemedEuros }, 200);
 });
 

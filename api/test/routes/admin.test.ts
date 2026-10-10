@@ -68,6 +68,27 @@ describe("POST /admin/customers/:id/points", () => {
     expect(list.find((c) => c.id === id)).toMatchObject({ points: 5 });
   });
 
+  it("adds points even when the push to the customer's device fails", async () => {
+    const { token, customer } = await login("3334445556", "Lia");
+    await SELF.fetch("https://example.com/device-token", {
+      method: "POST",
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: JSON.stringify({ token: "fake-device-token" }),
+    });
+
+    const res = await SELF.fetch(`https://example.com/admin/customers/${customer.id}/points`, {
+      method: "POST",
+      headers: { ...ADMIN_AUTH, "content-type": "application/json" },
+      body: JSON.stringify({ delta: 10 }),
+    });
+    expect(res.status).toBe(200);
+
+    const me = await (await SELF.fetch("https://example.com/me", { headers: { authorization: `Bearer ${token}` } })).json<{
+      points: number;
+    }>();
+    expect(me.points).toBe(10);
+  });
+
   it("returns 404 for an unknown customer", async () => {
     const res = await SELF.fetch("https://example.com/admin/customers/999999/points", {
       method: "POST",
