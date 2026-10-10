@@ -10,7 +10,7 @@ Stato: tutte le pagine del pilot sono implementate. Online su Cloudflare Pages (
 | --- | --- |
 | `npm install` | Installa le dipendenze |
 | `npm run dev` | Dev server su http://localhost:5173. Gira le chiamate `/admin/*` al Worker locale (`localhost:8787`, avviato con `npm run dev` in `api/`), quindi in sviluppo non serve CORS |
-| `npm test` | Test (`vitest`) del client HTTP |
+| `npm test` | Test (`vitest`) del client HTTP e del calcolo delle probabilità dei premi |
 | `npm run build` | Typecheck (`vue-tsc`) + build in `dist/` |
 | `npx wrangler pages deploy dist --project-name ale-style-admin` | Pubblica `dist/` su Cloudflare Pages. Prima fai la build con `VITE_API_URL` impostato (file `.env.production.local`, ignorato da git) |
 
@@ -25,7 +25,7 @@ La password da usare in locale è `ADMIN_PASSWORD` in `api/.dev.vars` (default `
 | `/loyalty` | **Regola fedeltà**: ogni quanti punti si ottiene uno sconto e di quanti euro (default 100 punti = 5 €). Vale subito per tutti |
 | `/customers/:id` | Barra **fedeltà** del cliente con pulsante "Usa sconto". Se ci sono più sconti sbloccati compare il flag **"Usa tutti gli sconti sbloccati"** (acceso di default, solo in quel riquadro): acceso usa tutti gli sconti in un colpo solo (es. "Usa 2 sconti · 10 €"), spento ne usa uno. Scala i punti dal saldo e chiede conferma con l'importo; aggiunge (o sottrae) punti con motivo; crea un'offerta personale con push; vede i **premi vinti alla ruota** e li segna come usati (vale una volta sola, entro 30 giorni; chiede conferma), **azzera il PIN** di un cliente che l'ha dimenticato (chiede conferma: farlo solo dopo aver riconosciuto la persona) |
 | `/broadcast` | Crea un'offerta per tutti i clienti con push |
-| `/prizes` | Elenco premi della ruota con probabilità calcolata dai pesi; crea e modifica premi |
+| `/prizes` | Elenco premi della ruota con probabilità calcolata dai pesi; crea, modifica ed **elimina** premi (con conferma). Un premio già vinto da qualcuno viene solo tolto dalla ruota e resta nei premi della cliente. Nel form ogni campo ha la sua etichetta e, mentre si scrive il peso, compare la **probabilità che avrà il premio** (`src/prizeChance.ts`, testato) |
 
 ## Struttura
 
@@ -33,6 +33,7 @@ La password da usare in locale è `ADMIN_PASSWORD` in `api/.dev.vars` (default `
 src/
   http.ts          # fetch verso l'API con Bearer, errori tipizzati (ApiError) — testato
   api.ts           # una funzione per endpoint /admin/*; su 401 esegue il logout
+  prizeChance.ts   # probabilità di un premio dai pesi, anche in anteprima durante la modifica — testato
   composables/     # useAuth (password in localStorage), useAsyncAction (busy/errore)
   components/      # OfferForm (condiviso da broadcast e dettaglio cliente), WonPrizesList (premi vinti + riscatto), LoyaltyCard + LoyaltyBar (barra fedeltà)
   views/           # una view per rotta

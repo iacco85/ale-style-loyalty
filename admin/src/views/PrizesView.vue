@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { createPrize, listPrizes, updatePrize } from "../api";
+import { createPrize, listPrizes, removePrize, updatePrize } from "../api";
 import { useAsyncAction } from "../composables/useAsyncAction";
+import { chancePercent, draftChancePercent } from "../prizeChance";
 import type { Prize, PrizeInput, PrizeType } from "../types";
 
 const typeLabels: Record<PrizeType, string> = {
@@ -17,13 +18,18 @@ const editingId = ref<number>();
 
 const totalWeight = computed(() => prizes.value.reduce((sum, p) => sum + p.weight, 0));
 const needsValue = computed(() => draft.value.type !== "none");
+const draftChance = computed(() => draftChancePercent(prizes.value, draft.value.weight, editingId.value));
 
 function emptyDraft(): PrizeInput {
   return { label: "", type: "none", weight: 10 };
 }
 
-function chancePercent(prize: Prize): string {
-  return totalWeight.value ? `${((prize.weight / totalWeight.value) * 100).toFixed(1)}%` : "-";
+function formatPercent(percent: number): string {
+  return `${percent.toFixed(1)}%`;
+}
+
+function prizeChance(prize: Prize): string {
+  return formatPercent(chancePercent(prize.weight, totalWeight.value));
 }
 
 async function load() {
@@ -49,12 +55,24 @@ async function save() {
   await load();
 }
 
+async function remove(prize: Prize) {
+  const question = `Eliminare "${prize.label}" dalla ruota? Le clienti che l'hanno già vinto lo conservano nei loro premi.`;
+  if (!window.confirm(question)) return;
+  const removed = await run(() => removePrize(prize.id));
+  if (removed === undefined) return;
+  if (editingId.value === prize.id) reset();
+  await load();
+}
+
 load();
 </script>
 
 <template>
   <h1>Ruota della fortuna</h1>
-  <p class="muted">Più alto è il peso, più il premio esce spesso. La probabilità è calcolata sul totale.</p>
+  <p class="muted">
+    Ogni premio ha un peso: più è alto, più il premio esce spesso. La percentuale accanto a ogni premio è la probabilità
+    che esca a ogni giro.
+  </p>
   <p v-if="error" class="error">{{ error }}</p>
 
   <ul class="list">
@@ -66,19 +84,36 @@ load();
           · peso {{ prize.weight }}
         </small>
       </span>
-      <span class="chance">{{ chancePercent(prize) }}</span>
+      <span class="chance">{{ prizeChance(prize) }}</span>
       <button class="secondary" @click="edit(prize)">Modifica</button>
+      <button class="secondary" :disabled="busy" @click="remove(prize)">Elimina</button>
     </li>
   </ul>
 
   <form class="card form" @submit.prevent="save">
     <h2>{{ editingId === undefined ? "Nuovo premio" : "Modifica premio" }}</h2>
-    <input v-model="draft.label" placeholder="Nome (es. -15% prossimo servizio)" required />
-    <select v-model="draft.type">
-      <option v-for="(label, type) in typeLabels" :key="type" :value="type">{{ label }}</option>
-    </select>
-    <input v-if="needsValue" v-model.number="draft.value" type="number" min="1" placeholder="Valore" required />
-    <input v-model.number="draft.weight" type="number" min="1" step="1" placeholder="Peso" required />
+    <label>
+      Nome sulla ruota
+      <input v-model="draft.label" placeholder="es. -15% prossimo servizio" required />
+    </label>
+    <label>
+      Tipo
+      <select v-model="draft.type">
+        <option v-for="(label, type) in typeLabels" :key="type" :value="type">{{ label }}</option>
+      </select>
+    </label>
+    <label v-if="needsValue">
+      {{ draft.type === "points" ? "Punti regalati" : "Percentuale di sconto" }}
+      <input v-model.number="draft.value" type="number" min="1" required />
+    </label>
+    <label>
+      Peso
+      <input v-model.number="draft.weight" type="number" min="1" step="1" required />
+      <small class="hint">Un numero da 1 in su, confrontato con i pesi degli altri premi.</small>
+    </label>
+    <p class="preview">
+      Con questo peso esce in <strong>{{ formatPercent(draftChance) }}</strong> dei giri
+    </p>
     <div class="actions">
       <button type="submit" :disabled="busy">Salva</button>
       <button v-if="editingId !== undefined" type="button" class="secondary" @click="reset">Annulla</button>
@@ -123,6 +158,30 @@ load();
 h2 {
   margin: 0;
   font-size: 1.4rem;
+}
+
+label {
+  display: grid;
+  gap: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.hint {
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.preview {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+}
+
+.preview strong {
+  color: var(--color-accent);
 }
 
 .actions {

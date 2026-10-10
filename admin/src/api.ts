@@ -2,7 +2,7 @@ import { currentPassword, useAuth } from "./composables/useAuth";
 import { ApiError, apiFetch } from "./http";
 import type { CustomerWithPoints, LoyaltyRedemption, LoyaltyRule, LoyaltySnapshot, OfferInput, Prize, PrizeInput, WonPrize } from "./types";
 
-async function authorized<T>(path: string, method?: "GET" | "POST" | "PUT", body?: unknown): Promise<T> {
+async function authorized<T>(path: string, method?: "GET" | "POST" | "PUT" | "DELETE", body?: unknown): Promise<T> {
   try {
     return await apiFetch<T>(path, { password: currentPassword(), method, body });
   } catch (error) {
@@ -70,4 +70,8 @@ export function createPrize(prize: PrizeInput): Promise<Prize> {
 
 export function updatePrize(id: number, prize: PrizeInput): Promise<Prize> {
   return authorized(`/admin/prizes/${id}`, "PUT", prize);
+}
+
+export function removePrize(id: number): Promise<{ result: "deleted" | "deactivated" }> {
+  return authorized(`/admin/prizes/${id}`, "DELETE");
 }
