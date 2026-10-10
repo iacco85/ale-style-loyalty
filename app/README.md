@@ -2,7 +2,7 @@
 
 App Android della cliente (Capacitor + Vue 3 + TypeScript): tessera con saldo punti, offerte, ruota della fortuna settimanale e notifiche push. Parla solo con l'API in [../api](../api/README.md) (nessun SDK di terzi). Contesto in [../README.md](../README.md) e [../PLAN.md](../PLAN.md).
 
-Stato: schermate e piattaforma Android generata, verificato solo come build web. **Non ancora provata** su telefono né con push reali (serve Firebase, vedi sotto).
+Stato: provata su tablet Android (Galaxy Tab A7, Android 12) il 10 ottobre 2026: login, sezioni, ruota, tasto indietro e prima push reale. Manca la prova dello sblocco biometrico su un telefono con impronta.
 
 ## Comandi
 
@@ -13,6 +13,7 @@ Stato: schermate e piattaforma Android generata, verificato solo come build web.
 | `npm test` | Test (`vitest`): client HTTP e geometria della ruota |
 | `npm run build` | Typecheck (`vue-tsc`) + build in `dist/` |
 | `npm run android` | Build + `cap sync android` + apre Android Studio |
+| `npm run android:install` | Build + `cap sync android` + compila l'APK di debug e lo installa sul dispositivo collegato in USB, senza aprire Android Studio (`scripts/install-android.mjs`, funziona su Windows e Linux). Serve Java 21 |
 
 Dopo ogni modifica a plugin o config nativa: `npx cap sync android`.
 
@@ -32,7 +33,7 @@ All'apertura dell'app (`SplashScreen.vue` + `useSplash`) il logo compare al cent
 
 ## Aggiornamento automatico dei dati
 
-Tessera, Offerte e Premi si aggiornano da sole (`useLiveData` + `useAutoRefresh`): rileggono i dati quando l'app torna in primo piano, quando la pagina torna visibile e ogni 30 secondi mentre è aperta. L'aggiornamento è silenzioso: non mostra caricamenti e, se la rete cade, lascia i dati già visibili senza errori. Se la sessione scade mentre si è su una pagina, l'app torna al login. La ruota non si aggiorna da sola per non cambiare gli spicchi durante un giro. La logica di caricamento è in `src/liveData.ts` (testata); le notifiche push per punti aggiunti e sconto sbloccato non sono ancora implementate.
+Tessera, Offerte e Premi si aggiornano da sole (`useLiveData` + `useAutoRefresh`): rileggono i dati quando l'app torna in primo piano, quando la pagina torna visibile e ogni 30 secondi mentre è aperta. L'aggiornamento è silenzioso: non mostra caricamenti e, se la rete cade, lascia i dati già visibili senza errori. Se la sessione scade mentre si è su una pagina, l'app torna al login. La ruota non si aggiorna da sola per non cambiare gli spicchi durante un giro. La logica di caricamento è in `src/liveData.ts` (testata). Le push (vedi sotto) sono solo un avviso: i dati li porta comunque l'aggiornamento automatico.
 
 ## Sblocco biometrico
 
@@ -47,6 +48,7 @@ src/
   http.ts / api.ts      # fetch verso l'API, un'funzione per endpoint; su 401 la sessione termina
   wheelGeometry.ts      # logica pura: spicchi ripetuti, scelta dello spicchio, geometria SVG, angolo di arresto (TDD)
   lockPolicy.ts         # logica pura: quando bloccare al ritorno in primo piano (TDD)
+  pushScreen.ts         # logica pura: quale schermata aprire toccando una notifica (TDD)
   biometrics.ts         # unico punto che parla col plugin biometrico
   liveData.ts           # caricamento dati con aggiornamenti silenziosi in background (TDD)
   composables/          # useLiveData, useAutoRefresh, useSession, useRememberedAccount (token in localStorage), useWheel, usePush, useBiometricLock, useAsyncAction
@@ -55,9 +57,13 @@ src/
 
 ## Provare su telefono Android
 
-1. API raggiungibile dal telefono: imposta `VITE_API_URL` (es. `VITE_API_URL=http://<IP-del-PC>:8787 npm run build`) — in dev il proxy di Vite non esiste dentro l'app. Il Worker abilita già CORS. Per HTTP in chiaro su Android può servire `server.cleartext` in `capacitor.config.ts`; con il Worker deployato (HTTPS) non serve.
-2. `npm run android`, poi Run da Android Studio con il telefono in USB debugging.
+1. API raggiungibile dal telefono: `app/.env.production.local` con `VITE_API_URL=https://api.alestyle.it` (ignorato da git). In dev il proxy di Vite non esiste dentro l'app.
+2. Debug USB attivo sul dispositivo e popup "Consentire il debug USB?" accettato; `adb devices` deve mostrarlo come `device`.
+3. `npm run android:install`, poi apri l'app dal tablet o telefono. Gli aggiornamenti si installano sopra la versione precedente: dati di accesso e permessi restano.
+4. Log dell'app: `adb logcat -s Capacitor:* Capacitor/Console:*`.
 
-## Push (FCM) — da fare
+## Push (FCM)
 
-Il plugin `@capacitor/push-notifications` è installato e `usePush.ts` registra il token con `POST /device-token`, ma su Android serve il file `google-services.json` del progetto Firebase in `android/app/` (è ignorato da git). Console Firebase → impostazioni progetto → app Android con package `it.alestyle.loyalty` → scarica `google-services.json`. Da testare su device fisico.
+`usePush.ts`, dopo il login, chiede il permesso per le notifiche e registra il token del dispositivo con `POST /device-token`. Su Android serve il file `google-services.json` del progetto Firebase in `android/app/` (ignorato da git): console Firebase → impostazioni progetto → app Android `it.alestyle.loyalty` → scarica `google-services.json`.
+
+Toccando una notifica l'app apre la schermata indicata dal Worker nei `data` della push (`screen`: `home`, `offers`, `prizes`, vedi `src/pushScreen.ts`): Tessera per punti e sconti usati, Offerte per le offerte, I tuoi premi per i premi usati. Funziona anche ad app chiusa: Capacitor conserva il tocco finché l'app non registra il listener, quindi se la sessione è scaduta la schermata si apre dopo il login. Con il blocco biometrico attivo la schermata si apre sotto il blocco, che resta da superare. Le push arrivano nella barra di sistema solo ad app chiusa o in background.
