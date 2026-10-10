@@ -154,8 +154,13 @@ export async function getAllDeviceTokens(db: D1Database): Promise<string[]> {
   return results.map((row) => row.token);
 }
 
+const PRIZE_COLUMNS = "id, label, type, value, weight";
+
+/** Solo i premi attivi: quelli rimossi dall'admin non compaiono più né nella ruota né nell'estrazione. */
 export async function listPrizes(db: D1Database): Promise<Prize[]> {
-  const { results } = await db.prepare("SELECT * FROM prizes ORDER BY weight DESC").all<Prize>();
+  const { results } = await db
+    .prepare(`SELECT ${PRIZE_COLUMNS} FROM prizes WHERE active = 1 ORDER BY weight DESC`)
+    .all<Prize>();
   return results;
 }
 
@@ -164,7 +169,7 @@ export async function createPrize(
   prize: { label: string; type: PrizeType; value?: number; weight: number },
 ): Promise<Prize> {
   const row = await db
-    .prepare("INSERT INTO prizes (label, type, value, weight) VALUES (?, ?, ?, ?) RETURNING *")
+    .prepare(`INSERT INTO prizes (label, type, value, weight) VALUES (?, ?, ?, ?) RETURNING ${PRIZE_COLUMNS}`)
     .bind(prize.label, prize.type, prize.value ?? null, prize.weight)
     .first<Prize>();
   if (!row) throw new Error("failed to create prize");
@@ -177,10 +182,28 @@ export async function updatePrize(
   prize: { label: string; type: PrizeType; value?: number; weight: number },
 ): Promise<Prize | null> {
   const row = await db
-    .prepare("UPDATE prizes SET label = ?, type = ?, value = ?, weight = ? WHERE id = ? RETURNING *")
+    .prepare(
+      `UPDATE prizes SET label = ?, type = ?, value = ?, weight = ? WHERE id = ? AND active = 1 RETURNING ${PRIZE_COLUMNS}`,
+    )
     .bind(prize.label, prize.type, prize.value ?? null, prize.weight, id)
     .first<Prize>();
   return row ?? null;
+}
+
+/** Cancella il premio solo se attivo e mai vinto da nessuno (nessun giro lo cita). */
+export async function deleteUnwonPrize(db: D1Database, id: number): Promise<boolean> {
+  const row = await db
+    .prepare(
+      "DELETE FROM prizes WHERE id = ? AND active = 1 AND NOT EXISTS (SELECT 1 FROM spins WHERE prize_id = ?) RETURNING id",
+    )
+    .bind(id, id)
+    .first();
+  return row !== null;
+}
+
+export async function deactivatePrize(db: D1Database, id: number): Promise<boolean> {
+  const row = await db.prepare("UPDATE prizes SET active = 0 WHERE id = ? AND active = 1 RETURNING id").bind(id).first();
+  return row !== null;
 }
 
 export async function getLastSpunAtForCustomer(db: D1Database, customerId: number): Promise<string | null> {

@@ -15,6 +15,14 @@ Basta questo: `npm run dev` crea da solo `.dev.vars` (se manca, copiandolo da `.
 
 `.dev.vars` contiene i segreti locali (`AUTH_SECRET`, `ADMIN_PASSWORD`, `FCM_*`): è generato in locale, ignorato da git, non va mai committato. Se aggiorni da una versione precedente senza PIN, il D1 locale esistente non ha le nuove colonne di `customers` (`CREATE TABLE IF NOT EXISTS` non le aggiunge): cancella `.wrangler/` (perdi i dati di prova) oppure esegui a mano i 4 `ALTER TABLE customers ADD COLUMN` per `pin_hash`, `pin_salt`, `failed_pin_attempts`, `pin_locked_until`. Se vuoi resettare completamente il D1 locale (dati di test compresi), cancella la cartella `.wrangler/` e rilancia `npm run dev`.
 
+**Colonne aggiunte dopo la creazione del database** (finché non arrivano le migrazioni con l'ORM, vedi PLAN.md): vanno aggiunte a mano ai D1 già esistenti, in locale (`--local`) e in produzione (`--remote`):
+
+```bash
+npx wrangler d1 execute ale-style-loyalty --remote --command "ALTER TABLE prizes ADD COLUMN active INTEGER NOT NULL DEFAULT 1"
+```
+
+In produzione va eseguito **prima** di pubblicare il Worker che usa la colonna.
+
 ### Push notifiche (Firebase Cloud Messaging)
 
 `src/push.ts` è l'unico modulo che parla con FCM (vedi CLAUDE.md — nessun SDK Firebase altrove). Per farlo funzionare in locale servono le credenziali del **service account** del progetto Firebase, da mettere in `.dev.vars`:
@@ -49,7 +57,8 @@ Autenticazione minima per il pilot (un solo utente, la sorella): password condiv
 | `POST /admin/customers/:id/points` | Aggiunge una riga a `points_log` (`delta` positivo o negativo + `reason` opzionale). Se `delta` è positivo invia una push con il nuovo saldo o lo sconto sbloccato |
 | `POST /admin/customers/:id/offers` | Crea un'offerta per quel cliente e invia la push ai suoi device token registrati |
 | `POST /admin/broadcast` | Crea un'offerta broadcast (`customer_id` null, visibile a tutti via `GET /offers`) e invia la push a tutti i device token registrati |
-| `GET /admin/prizes` / `POST /admin/prizes` / `PUT /admin/prizes/:id` | CRUD dei premi della ruota della fortuna (label, tipo, valore, peso), usati da `POST /spin` per l'estrazione |
+| `GET /admin/prizes` / `POST /admin/prizes` / `PUT /admin/prizes/:id` | Premi della ruota della fortuna (label, tipo, valore, peso), usati da `POST /spin` per l'estrazione. Elenco e modifica riguardano solo i premi attivi |
+| `DELETE /admin/prizes/:id` | Elimina un premio dalla ruota: se non è mai uscito viene cancellato (`{ "result": "deleted" }`), se qualcuno l'ha già vinto viene disattivato (`deactivated`, colonna `active = 0`) e resta nei premi vinti delle clienti. `404` se non esiste o è già stato eliminato |
 
 ## Fedeltà a punti ("barra" nell'app)
 
@@ -147,6 +156,7 @@ src/
     customerLoyalty.ts              # saldo + regola → barra; riscatto sconto
     prizeExpiry.ts                # scadenza (30 giorni) e stato di un premio vinto (pura)
     wonPrizes.ts                  # elenco premi vinti con stato e riscatto
+    prizeRemoval.ts               # elimina un premio mai vinto, disattiva uno già vinto
   routes/                      # createRoute() + handler, un file per endpoint
     admin/                       # customers.ts, broadcast.ts, prizes.ts — endpoint /admin/*
     spin.ts                       # POST /spin, GET /spin/status

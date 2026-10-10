@@ -1,6 +1,7 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { createPrize, listPrizes, updatePrize } from "../../db";
 import { adminAuthMiddleware } from "../../middleware/adminAuth";
+import { removePrize } from "../../services/prizeRemoval";
 import type { Env, Variables } from "../../types";
 
 const errorSchema = z.object({ error: z.string() });
@@ -73,6 +74,26 @@ const updatePrizeRoute = createRoute({
   },
 });
 
+const removePrizeRoute = createRoute({
+  method: "delete",
+  path: "/admin/prizes/{id}",
+  tags: ["Admin"],
+  summary: "Elimina un premio dalla ruota",
+  description:
+    "Se il premio non è mai uscito viene cancellato (`deleted`). Se qualcuno l'ha già vinto viene solo disattivato (`deactivated`): sparisce dalla ruota e dall'estrazione ma resta nei premi vinti delle clienti.",
+  security: [{ Bearer: [] }],
+  middleware: adminAuthMiddleware,
+  request: { params: idParamSchema },
+  responses: {
+    200: {
+      description: "Premio eliminato o disattivato",
+      content: { "application/json": { schema: z.object({ result: z.enum(["deleted", "deactivated"]) }) } },
+    },
+    401: { description: "Password admin mancante o errata", content: { "application/json": { schema: errorSchema } } },
+    404: { description: "Premio non trovato o già eliminato", content: { "application/json": { schema: errorSchema } } },
+  },
+});
+
 const prizes = new OpenAPIHono<{ Bindings: Env; Variables: Variables }>();
 
 prizes.openapi(listPrizesRoute, async (c) => {
@@ -92,6 +113,13 @@ prizes.openapi(updatePrizeRoute, async (c) => {
   const prize = await updatePrize(c.env.DB, id, body);
   if (!prize) return c.json({ error: "not_found" }, 404);
   return c.json(prize, 200);
+});
+
+prizes.openapi(removePrizeRoute, async (c) => {
+  const { id } = c.req.valid("param");
+  const result = await removePrize(c.env.DB, id);
+  if (result === "not_found") return c.json({ error: "not_found" }, 404);
+  return c.json({ result }, 200);
 });
 
 export default prizes;

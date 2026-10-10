@@ -40,7 +40,9 @@ CREATE TABLE IF NOT EXISTS prizes (
   label TEXT NOT NULL,
   type TEXT NOT NULL CHECK (type IN ('discount', 'points', 'none')),
   value INTEGER,
-  weight INTEGER NOT NULL
+  weight INTEGER NOT NULL,
+  -- 0 = rimosso dall'admin ma già vinto da qualcuno: fuori dalla ruota, resta per lo storico dei premi vinti
+  active INTEGER NOT NULL DEFAULT 1
 );
 
 CREATE TABLE IF NOT EXISTS spins (
