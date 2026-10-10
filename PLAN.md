@@ -147,7 +147,7 @@ Cosa va deciso e fatto:
   - nella pagina Ruota dell'admin, un campo "La cliente può girare ogni N giorni".
   - Un cambio vale subito per tutte: il prossimo giro si calcola dall'ultimo giro fatto più il nuovo intervallo.
   - Il flag di sviluppo `SPIN_COOLDOWN_DISABLED` resta.
-  - Da valutare con gli appuntamenti: un giro per ogni visita invece che a tempo.
+  - **Deciso dall'utente**: con gli appuntamenti la ruota si sblocca **dopo ogni appuntamento segnato come fatto** (vedi "Gestione appuntamenti"). L'intervallo in giorni serve quindi solo finché gli appuntamenti non esistono: da decidere se farlo comunque o aspettare direttamente gli appuntamenti.
 - **Dalla notifica non si capisce quale app l'ha mandata**: la prima push vera è arrivata (offerta creata dall'admin, app chiusa), ma l'app ha ancora l'**icona predefinita di Capacitor** (la X blu) e nessuna icona dedicata alle notifiche, quindi Android ne mostra solo la sagoma. Da fare: icona dell'app col logo Ale Style (generata dal logo con `@capacitor/assets` per tutte le densità e per l'icona adattiva) e un'**icona per le notifiche** bianca su sfondo trasparente, collegata nel manifest (`com.google.firebase.messaging.default_notification_icon`), con il colore oro del tema (`default_notification_color`).
 - **Toccando la notifica l'app si apre sulla Home**: deve aprire la sezione giusta, per le offerte **Offerte**. La push porta nei `data` la destinazione (es. `route: "/offers"`), decisa dal Worker in `notifications.ts`, e l'app ascolta `pushNotificationActionPerformed` in `usePush` e naviga lì. Deve funzionare anche ad app chiusa (avvio a freddo: navigare dopo login o sblocco, non prima) e servirà anche per le push sui punti (→ Tessera).
 
@@ -173,9 +173,16 @@ Richiesta dell'utente: è una funzionalità nuova e più grande delle altre, va 
   - creare, spostare e annullare un appuntamento scegliendo cliente, data, ora, durata e servizio.
 - **Notifica alla cliente**: quando l'appuntamento è creato o spostato, arriva una push. Toccandola si apre la nuova sezione **Appuntamenti** dell'app (prossimi appuntamenti e storico).
 - **Aggiunta al calendario del telefono**: dall'app, pulsante "Aggiungi al calendario" che apre l'app calendario di Android con l'evento già compilato (intent `ACTION_INSERT` di `CalendarContract`, tramite un plugin Capacitor; in alternativa un file `.ics`). Così non servono permessi di lettura/scrittura sul calendario.
-- **Dati**: nuova tabella D1 `appointments` (cliente, inizio, durata, servizio, note, stato: confermato / annullato / completato), con migrazione e indice su cliente e data. Le regole (sovrapposizioni, orari di apertura, chi può spostare cosa) vanno scritte in TDD.
+- **Dati**: nuova tabella D1 `appointments` (cliente, inizio, durata, servizio, note, stato: in programma / fatto / non presentata / annullato, chi ha annullato, quando è stato segnato), con migrazione e indice su cliente e data. Le regole (sovrapposizioni, orari di apertura, chi può spostare cosa) vanno scritte in TDD.
+- **Esito di ogni appuntamento** (deciso dall'utente): dopo l'orario la titolare lo segna come **fatto** oppure **non fatto**. Per i non fatti si distingue tra "la cliente non si è presentata" e "annullato", e per gli annullati chi l'ha annullato. Finché non viene segnato, l'appuntamento resta "da segnare" e l'admin lo evidenzia.
+- **Ruota sbloccata dagli appuntamenti** (deciso dall'utente): ogni appuntamento segnato come **fatto** dà alla cliente **un giro della ruota**, che si sblocca in automatico (con una push "Hai un giro della ruota!"). Prende il posto dell'intervallo in giorni. Lato server: `spins` ottiene una colonna `appointment_id`, e si può girare se esiste un appuntamento fatto non ancora usato per un giro. È una regola di eligibilità, quindi va scritta in TDD. Da decidere: se una cliente fa due appuntamenti senza girare ha due giri o uno solo, e se un giro non usato scade.
+- **Storico e statistiche** (richiesta dell'utente):
+  - **per cliente**, nel dettaglio dell'admin: elenco degli appuntamenti passati con l'esito, e i conteggi di fatti, non presentata e annullati;
+  - **per il salone**: appuntamenti fatti per mese, percentuale di non presentate, clienti che vengono più spesso.
+  - Le statistiche si calcolano con query su `appointments`, senza colonne di riepilogo da tenere aggiornate (stesso principio di `last_visit_at` nella Fase 2).
+  - Servono anche per l'offerta "non viene da un po'", perché l'ultima visita diventa l'ultimo appuntamento fatto.
 - **Collegamenti con il resto**:
-  - segnare l'appuntamento come "completato" può proporre l'aggiunta dei punti;
+  - segnare l'appuntamento come "fatto" può proporre l'aggiunta dei punti;
   - si appoggia alla regola "un solo sconto per appuntamento", se la faremo;
   - si può aggiungere un promemoria il giorno prima con un cron del Worker.
 
