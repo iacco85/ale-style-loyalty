@@ -14,6 +14,7 @@ Stato: provata su tablet Android (Galaxy Tab A7, Android 12) il 10 ottobre 2026:
 | `npm run build` | Typecheck (`vue-tsc`) + build in `dist/` |
 | `npm run android` | Build + `cap sync android` + apre Android Studio |
 | `npm run android:install` | Build + `cap sync android` + compila l'APK di debug e lo installa sul dispositivo collegato in USB, senza aprire Android Studio (`scripts/install-android.mjs`, funziona su Windows e Linux). Serve Java 21 |
+| `npm run icons` | Rigenera icona dell'app e icona delle notifiche (vedi "Icone") |
 
 Dopo ogni modifica a plugin o config nativa: `npx cap sync android`.
 
@@ -30,6 +31,15 @@ Dopo ogni modifica a plugin o config nativa: `npx cap sync android`.
 ## Splash screen
 
 All'apertura dell'app (`SplashScreen.vue` + `useSplash`) il logo compare al centro su sfondo nero con un fade-in di 1 secondo, resta fino a 1,8 secondi e poi sfuma in 0,5 secondi sulla schermata successiva; con "riduci animazioni" attivo nel telefono il logo compare senza animazione. Compare solo all'avvio, non quando si torna dal background. Il lancio nativo di Android (prima che parta l'app) è solo nero (`styles.xml`, `splash_background` in `colors.xml`, `backgroundColor` in `capacitor.config.ts`), così non si vede né il logo di default di Capacitor né un lampo bianco. **Il lato nativo non è stato compilato né provato su telefono** (serve Android Studio).
+
+## Icone
+
+L'icona dell'app è un monogramma oro su nero: la "A" e la "S" in corsivo prese dal logo (`src/assets/LogoAleStyle.jpg`) con le forbici della favicon del sito alestyle.it. `scripts/make-icons.mjs` stacca le due lettere dal logo, le vettorializza (`potrace`) e scrive:
+
+- in `assets/` i sorgenti (`icon.svg`, `icon-only.png`, `icon-foreground.png`, `icon-background.png`), da cui `@capacitor/assets` genera le icone `mipmap-*` (adattiva, tonda e classica) per tutte le densità;
+- in `android/app/src/main/res/drawable-*/ic_stat_notify.png` l'icona della barra di stato per le notifiche: **solo le forbici**, bianche su trasparente (a 24 px il monogramma non si leggerebbe).
+
+`npm run icons` rifà tutto. `@capacitor/assets` riscrive anche gli `splash.png`, crea cartelle `drawable-*night*`/`*ldpi` e riformatta `AndroidManifest.xml`: non serve niente di tutto questo, perché il lancio nativo è solo nero (vedi "Splash screen"). Si scarta con `git checkout -- android/app/src/main/AndroidManifest.xml android/app/src/main/res/drawable*/splash.png` (solo con il manifest già committato, altrimenti si perdono le modifiche) e cancellando le cartelle nuove.
 
 ## Aggiornamento automatico dei dati
 
@@ -67,3 +77,5 @@ src/
 `usePush.ts`, dopo il login, chiede il permesso per le notifiche e registra il token del dispositivo con `POST /device-token`. Su Android serve il file `google-services.json` del progetto Firebase in `android/app/` (ignorato da git): console Firebase → impostazioni progetto → app Android `it.alestyle.loyalty` → scarica `google-services.json`.
 
 Toccando una notifica l'app apre la schermata indicata dal Worker nei `data` della push (`screen`: `home`, `offers`, `prizes`, vedi `src/pushScreen.ts`): Tessera per punti e sconti usati, Offerte per le offerte, I tuoi premi per i premi usati. Funziona anche ad app chiusa: Capacitor conserva il tocco finché l'app non registra il listener, quindi se la sessione è scaduta la schermata si apre dopo il login. Con il blocco biometrico attivo la schermata si apre sotto il blocco, che resta da superare. Le push arrivano nella barra di sistema solo ad app chiusa o in background.
+
+Aspetto: le forbici bianche nella barra di stato e il colore oro sono i default di FCM nel `AndroidManifest.xml` (`default_notification_icon`, `default_notification_color`). Le push vanno nel canale **"Offerte e punti"** (id `offers_points`): è il canale di default nel manifest e `usePush` lo crea prima di registrarsi, così nelle impostazioni Android la cliente lo vede con questo nome e può disattivarlo. Il Worker non indica nessun canale: quando arriveranno gli appuntamenti servirà un secondo canale, scelto dal Worker con `android.notification.channel_id`.

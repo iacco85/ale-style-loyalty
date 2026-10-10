@@ -4,4 +4,6 @@
     <string name="title_activity_main">Ale Style</string>
     <string name="package_name">it.alestyle.loyalty</string>
     <string name="custom_url_scheme">it.alestyle.loyalty</string>
+    <!-- Stesso id del canale creato dall'app in usePush.ts -->
+    <string name="default_notification_channel_id">offers_points</string>
 </resources>

@@ -6,6 +6,9 @@ import { router } from "../router";
 
 let listening = false;
 
+// Il nome è quello che la cliente vede nelle impostazioni di Android; l'id è il default nel manifest.
+const OFFERS_POINTS_CHANNEL = { id: "offers_points", name: "Offerte e punti", importance: 4 } as const;
+
 async function openTappedScreen(data: Record<string, unknown> | undefined) {
   const screen = routeForPush(data);
   if (!screen) return;
@@ -29,6 +32,7 @@ export async function enablePush() {
   if (!Capacitor.isNativePlatform()) return;
   const permission = await PushNotifications.requestPermissions();
   if (permission.receive !== "granted") return;
+  await PushNotifications.createChannel(OFFERS_POINTS_CHANNEL);
   await listenForPushEvents();
   await PushNotifications.register();
 }

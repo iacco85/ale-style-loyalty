@@ -148,10 +148,16 @@ Cosa va deciso e fatto:
   - Un cambio vale subito per tutte: il prossimo giro si calcola dall'ultimo giro fatto più il nuovo intervallo.
   - Il flag di sviluppo `SPIN_COOLDOWN_DISABLED` resta.
   - **Deciso dall'utente**: con gli appuntamenti la ruota si sblocca **dopo ogni appuntamento segnato come fatto** (vedi "Gestione appuntamenti"). L'intervallo in giorni serve quindi solo finché gli appuntamenti non esistono: da decidere se farlo comunque o aspettare direttamente gli appuntamenti.
-- **Dalla notifica non si capisce quale app l'ha mandata**: la prima push vera è arrivata (offerta creata dall'admin, app chiusa), ma l'app ha ancora l'**icona predefinita di Capacitor** (la X blu) e nessuna icona dedicata alle notifiche, quindi Android ne mostra solo la sagoma. Da fare: icona dell'app col logo Ale Style (generata dal logo con `@capacitor/assets` per tutte le densità e per l'icona adattiva) e un'**icona per le notifiche** bianca su sfondo trasparente, collegata nel manifest (`com.google.firebase.messaging.default_notification_icon`), con il colore oro del tema (`default_notification_color`).
+- ✅ **Dalla notifica non si capisce quale app l'ha mandata** (fatto il 10 ottobre 2026, vedi sezione sotto): la prima push vera è arrivata (offerta creata dall'admin, app chiusa), ma l'app ha ancora l'**icona predefinita di Capacitor** (la X blu) e nessuna icona dedicata alle notifiche, quindi Android ne mostra solo la sagoma. Da fare: icona dell'app col logo Ale Style (generata dal logo con `@capacitor/assets` per tutte le densità e per l'icona adattiva) e un'**icona per le notifiche** bianca su sfondo trasparente, collegata nel manifest (`com.google.firebase.messaging.default_notification_icon`), con il colore oro del tema (`default_notification_color`).
 - ✅ **Toccando la notifica l'app si apre sulla Home** (fatto il 10 ottobre 2026, da provare dopo il deploy): deve aprire la sezione giusta, per le offerte **Offerte**. La push porta nei `data` la destinazione (es. `route: "/offers"`), decisa dal Worker in `notifications.ts`, e l'app ascolta `pushNotificationActionPerformed` in `usePush` e naviga lì. Deve funzionare anche ad app chiusa (avvio a freddo: navigare dopo login o sblocco, non prima) e servirà anche per le push sui punti (→ Tessera).
 
-## Icona dell'app e notifiche personalizzate (da fare)
+## Icona dell'app e notifiche personalizzate (fatto il 10 ottobre 2026)
+
+**Come è stato fatto** (installata sul tablet; dettagli nel README di `app/`, sezione "Icone"):
+- Non c'era un logo quadrato: l'icona è un **monogramma** con la "A" e la "S" in corsivo staccate dal logo e vettorializzate, più le **forbici della favicon** del sito alestyle.it. Tratti ingrossati, oro su nero. La coda della "A" resta intera (scelta dell'utente), quindi il disegno è largo e non può crescere oltre senza tagli.
+- Icona della barra di stato: **solo le forbici** bianche, perché a 24 px il monogramma non si legge. Colore oro e canale **"Offerte e punti"** (`offers_points`) come default FCM nel manifest; il canale lo crea l'app.
+- Tutto si rigenera con `npm run icons` (`scripts/make-icons.mjs` + `@capacitor/assets`).
+- **Resta da fare**: canale "Appuntamenti" scelto dal Worker quando ci saranno gli appuntamenti; logo grande e suono personalizzato restano da valutare.
 
 Richiesta dopo la prima push sul tablet, completa i due punti sopra su icona e apertura della sezione giusta:
 
@@ -255,7 +261,7 @@ Oggi il deploy è manuale da terminale: `npm run deploy` in `api/`, e `npm run b
 
 1. **Prova su dispositivo** (passo 8): fatta sul tablet, push compresa; la biometria va provata su un telefono.
 2. ✅ **Difetti emersi dalla prova sul tablet** (sezione sopra): ruota che si aggiorna da sola, eliminazione dei premi, campo peso e intervallo della ruota impostabile dall'admin (0 = sempre). Fatti, pubblicati e provati sul tablet il 10 ottobre 2026.
-3. **Icona dell'app e notifiche personalizzate** (sezione sopra).
+3. ✅ **Icona dell'app e notifiche personalizzate** (sezione sopra): fatte e installate sul tablet il 10 ottobre 2026.
 4. **Deploy automatico** di API e admin col push su GitHub (sezione sopra).
 5. **Navigazione dell'app** (sezione sopra): tasto indietro di Android, cronologia pulita, pulsanti indietro nelle schermate secondarie.
 6. ✅ **Notifiche push sugli eventi utili**: fatte, pubblicate e provate sul tablet il 10 ottobre 2026.

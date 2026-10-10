@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "android": "npm run build && cap sync android && cap open android",
-    "android:install": "npm run build && cap sync android && node scripts/install-android.mjs"
+    "icons": "node scripts/make-icons.mjs && capacitor-assets generate --android --iconBackgroundColor \"#000000\" --iconBackgroundColorDark \"#000000\"",
+    "android:install":"npm run build && cap sync android && node scripts/install-android.mjs"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.2",
@@ -23,10 +24,12 @@
   },
   "devDependencies": {
     "@capacitor/android": "^8.5.3",
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.5.3",
     "@types/node": "^24.13.3",
     "@vitejs/plugin-vue": "^6.0.8",
     "@vue/tsconfig": "^0.9.1",
+    "potrace": "^2.1.8",
     "typescript": "~6.0.2",
     "vite": "^8.3.0",
     "vitest": "^5.0.3",
