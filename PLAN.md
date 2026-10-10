@@ -141,8 +141,8 @@ Cosa va deciso e fatto:
 - ✅ **Nell'admin non si possono eliminare i premi della ruota** (fatto il 10 ottobre 2026, `DELETE /admin/prizes/:id`; in produzione serve l'`ALTER TABLE` indicato nel README di `api/`): mancava sia il pulsante sia l'endpoint. Un premio già vinto è citato da `spins` e da "I tuoi premi", quindi non si cancella davvero: va **disattivato** (colonna `active`, migrazione D1), sparisce dalla ruota e dall'estrazione ma resta nello storico. Si può cancellare per davvero solo un premio mai uscito. Serve una conferma prima di eliminare. L'estrazione pesata (TDD) deve ignorare i premi disattivati.
 - ✅ **Il campo "peso" non è chiaro** (fatto il 10 ottobre 2026: etichette su ogni campo e anteprima della probabilità; il selettore a livelli resta da valutare dopo che la titolare l'ha provato): era un numero senza etichetta, "Peso" è solo il testo segnaposto che sparisce quando si scrive, e la probabilità si vede solo dopo aver salvato. Da rendere comprensibile per la titolare: etichetta visibile con una spiegazione breve, e **anteprima della probabilità in percentuale mentre si modifica** (calcolata sul totale con il nuovo valore). Valutare un selettore a livelli (es. "raro / medio / frequente") al posto del numero libero.
 
-- **Ogni quanto si può girare la ruota va deciso dall'admin** (richiesta dell'utente). Oggi sono 7 giorni fissi nel codice (`COOLDOWN_DAYS` in `services/spinCooldown.ts`). Come farlo:
-  - salvare l'intervallo in giorni in D1, in una nuova tabella a riga unica `wheel_settings` (default 7, minimo 1), come per la regola fedeltà;
+- ✅ **Ogni quanto si può girare la ruota va deciso dall'admin** (fatto e pubblicato il 10 ottobre 2026, con **0 = si gira sempre**, scelto dall'utente anche per poter provare la ruota). Prima erano 7 giorni fissi nel codice. Come è stato fatto:
+  - salvare l'intervallo in giorni in D1, in una nuova tabella a riga unica `wheel_settings` (default 7, minimo 0), come per la regola fedeltà;
   - `getSpinAvailability` riceve l'intervallo come parametro, con test TDD prima;
   - nella pagina Ruota dell'admin, un campo "La cliente può girare ogni N giorni".
   - Un cambio vale subito per tutte: il prossimo giro si calcola dall'ultimo giro fatto più il nuovo intervallo.
@@ -254,7 +254,7 @@ Oggi il deploy è manuale da terminale: `npm run deploy` in `api/`, e `npm run b
 ## Prossimi passi
 
 1. **Prova su dispositivo** (passo 8): fatta sul tablet, push compresa; la biometria va provata su un telefono.
-2. **Difetti emersi dalla prova sul tablet** (sezione sopra): ruota che si aggiorna da sola, eliminazione dei premi e campo peso fatti il 10 ottobre 2026, da pubblicare e provare. L'intervallo della ruota impostabile dall'admin è in sospeso: probabilmente superato dalla ruota sbloccata dagli appuntamenti.
+2. **Difetti emersi dalla prova sul tablet** (sezione sopra): ruota che si aggiorna da sola, eliminazione dei premi e campo peso fatti il 10 ottobre 2026, da pubblicare e provare. Fatto e pubblicato anche l'intervallo della ruota impostabile dall'admin (0 = sempre).
 3. **Icona dell'app e notifiche personalizzate** (sezione sopra).
 4. **Deploy automatico** di API e admin col push su GitHub (sezione sopra).
 5. **Navigazione dell'app** (sezione sopra): tasto indietro di Android, cronologia pulita, pulsanti indietro nelle schermate secondarie.
