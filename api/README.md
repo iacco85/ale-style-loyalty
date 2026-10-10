@@ -100,7 +100,7 @@ Logica pura testata TDD: `src/services/weightedDraw.ts` (estrazione pesata, incl
 
 ## Deploy automatico
 
-Il Worker è collegato al repo GitHub con l'integrazione Git di Cloudflare (Workers Builds, dashboard → `ale-style-api` → Settings → Build): ogni push su `main` che tocca `api/*` esegue `npm test && npx wrangler deploy` nella cartella `api`. Se un test fallisce, il deploy non parte e l'API online resta quella di prima: l'esito e i log sono nella dashboard, sotto Deployments/Builds. I segreti restano quelli caricati con `wrangler secret put`, il build non li tocca. **Le migrazioni del D1 remoto restano manuali** (`wrangler d1 execute ... --remote`): vanno applicate prima di pushare il codice che le usa.
+Il Worker è collegato al repo GitHub con l'integrazione Git di Cloudflare (Workers Builds, dashboard → `ale-style-api` → Settings → Build), dal 10 ottobre 2026. L'app GitHub "Cloudflare Workers and Pages" deve avere accesso al repo `ale-style-loyalty` (oltre ad `ale-style`): se manca, la dashboard dice "disconnected from your Git account" e i push non fanno partire niente. Ogni push su `main` che tocca `api/*` esegue `npm test && npx wrangler deploy` nella cartella `api`. Se un test fallisce, il deploy non parte e l'API online resta quella di prima: l'esito e i log sono nella dashboard, sotto Deployments/Builds. I segreti restano quelli caricati con `wrangler secret put`, il build non li tocca. **Le migrazioni del D1 remoto restano manuali** (`wrangler d1 execute ... --remote`): vanno applicate prima di pushare il codice che le usa.
 
 ## CORS
 
