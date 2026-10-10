@@ -33,7 +33,7 @@ All'apertura dell'app (`SplashScreen.vue` + `useSplash`) il logo compare al cent
 
 ## Aggiornamento automatico dei dati
 
-Tessera, Offerte e Premi si aggiornano da sole (`useLiveData` + `useAutoRefresh`): rileggono i dati quando l'app torna in primo piano, quando la pagina torna visibile e ogni 30 secondi mentre è aperta. L'aggiornamento è silenzioso: non mostra caricamenti e, se la rete cade, lascia i dati già visibili senza errori. Se la sessione scade mentre si è su una pagina, l'app torna al login. La ruota non si aggiorna da sola per non cambiare gli spicchi durante un giro. La logica di caricamento è in `src/liveData.ts` (testata). Le push (vedi sotto) sono solo un avviso: i dati li porta comunque l'aggiornamento automatico.
+Tessera, Offerte e Premi si aggiornano da sole (`useLiveData` + `useAutoRefresh`): rileggono i dati quando l'app torna in primo piano, quando la pagina torna visibile e ogni 30 secondi mentre è aperta. L'aggiornamento è silenzioso: non mostra caricamenti e, se la rete cade, lascia i dati già visibili senza errori. Se la sessione scade mentre si è su una pagina, l'app torna al login. Anche la Ruota si aggiorna così (premi cambiati dall'admin, giro di nuovo disponibile), ma **mai durante un giro**: cambiare gli spicchi mentre gira la farebbe fermare sul premio sbagliato (`useWheel`). La logica di caricamento è in `src/liveData.ts` (testata). Le push (vedi sotto) sono solo un avviso: i dati li porta comunque l'aggiornamento automatico.
 
 ## Sblocco biometrico
 
