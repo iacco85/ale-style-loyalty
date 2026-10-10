@@ -1,6 +1,6 @@
-import { getLastSpunAtForCustomer, listPrizes, recordSpin } from "../db";
+import { getLastSpunAtForCustomer, getSpinCooldownDays, listPrizes, recordSpin } from "../db";
 import type { Prize } from "../types";
-import { getSpinAvailability } from "./spinCooldown";
+import { type SpinAvailability, getSpinAvailability } from "./spinCooldown";
 import { pickWeightedPrize } from "./weightedDraw";
 
 export type SpinOutcome =
@@ -18,13 +18,17 @@ function bonusPointsFor(prize: Prize): { delta: number; reason: string } | undef
   return { delta: prize.value, reason: `Ruota della fortuna: ${prize.label}` };
 }
 
-export async function spinForCustomer(
+export async function getSpinAvailabilityForCustomer(
   db: D1Database,
   customerId: number,
   { now = new Date(), cooldownDisabled = false }: SpinOptions = {},
-): Promise<SpinOutcome> {
-  const lastSpunAt = await getLastSpunAtForCustomer(db, customerId);
-  const availability = getSpinAvailability(lastSpunAt, now, { cooldownDisabled });
+): Promise<SpinAvailability> {
+  const [lastSpunAt, cooldownDays] = await Promise.all([getLastSpunAtForCustomer(db, customerId), getSpinCooldownDays(db)]);
+  return getSpinAvailability(lastSpunAt, now, { cooldownDays, cooldownDisabled });
+}
+
+export async function spinForCustomer(db: D1Database, customerId: number, options: SpinOptions = {}): Promise<SpinOutcome> {
+  const availability = await getSpinAvailabilityForCustomer(db, customerId, options);
   if (!availability.allowed) return { status: "cooldown", nextSpinAt: availability.nextAvailableAt as string };
 
   const prizes = await listPrizes(db);

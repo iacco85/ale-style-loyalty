@@ -23,6 +23,8 @@ npx wrangler d1 execute ale-style-loyalty --remote --command "ALTER TABLE prizes
 
 In produzione va eseguito **prima** di pubblicare il Worker che usa la colonna.
 
+Le **tabelle nuove** (es. `wheel_settings`) invece si creano riapplicando `schema.sql`, che usa `CREATE TABLE IF NOT EXISTS` e `INSERT OR IGNORE` e quindi non tocca le tabelle e i dati esistenti: `npx wrangler d1 execute ale-style-loyalty --remote --file=schema.sql`. In locale lo fa già `npm run dev`.
+
 ### Push notifiche (Firebase Cloud Messaging)
 
 `src/push.ts` è l'unico modulo che parla con FCM (vedi CLAUDE.md — nessun SDK Firebase altrove). Per farlo funzionare in locale servono le credenziali del **service account** del progetto Firebase, da mettere in `.dev.vars`:
@@ -58,6 +60,7 @@ Autenticazione minima per il pilot (un solo utente, la sorella): password condiv
 | `POST /admin/customers/:id/offers` | Crea un'offerta per quel cliente e invia la push ai suoi device token registrati |
 | `POST /admin/broadcast` | Crea un'offerta broadcast (`customer_id` null, visibile a tutti via `GET /offers`) e invia la push a tutti i device token registrati |
 | `GET /admin/prizes` / `POST /admin/prizes` / `PUT /admin/prizes/:id` | Premi della ruota della fortuna (label, tipo, valore, peso), usati da `POST /spin` per l'estrazione. Elenco e modifica riguardano solo i premi attivi |
+| `GET /admin/wheel-settings` / `PUT /admin/wheel-settings` | Ogni quanti giorni la cliente può girare la ruota (`spin_cooldown_days`, intero ≥ 0, default 7, 0 = sempre). Vale subito per tutte |
 | `DELETE /admin/prizes/:id` | Elimina un premio dalla ruota: se non è mai uscito viene cancellato (`{ "result": "deleted" }`), se qualcuno l'ha già vinto viene disattivato (`deactivated`, colonna `active = 0`) e resta nei premi vinti delle clienti. `404` se non esiste o è già stato eliminato |
 
 ## Fedeltà a punti ("barra" nell'app)
@@ -73,15 +76,17 @@ Server-authoritative (vedi CLAUDE.md — Sicurezza): il client non decide né in
 | `GET /prizes` | Segmenti della ruota (`id`, `label`, `type`, `value`) in ordine stabile, **senza pesi**: serve all'app per disegnare la ruota senza rivelare le probabilità |
 | `GET /my-prizes` | Sconti vinti dal cliente (esclusi i giri persi e i premi a punti, già nel saldo), dal più recente, con `expires_at` (30 giorni dalla vincita) e `status`: `available` (da usare), `redeemed` (usato in salone) o `expired` |
 | `GET /spin/status` | `{ can_spin, next_spin_at }` — dice se il cliente autenticato può girare ora o quando potrà tornare a farlo |
-| `POST /spin` | Se il cooldown (7 giorni dall'ultimo spin del cliente) è scaduto, estrae un premio pesato tra quelli in `prizes` (`src/services/weightedDraw.ts`), lo registra in `spins` e lo restituisce. Altrimenti risponde `429` con `next_spin_at`. Risponde `500` se nessun premio è configurato |
+| `POST /spin` | Se il cooldown (N giorni dall'ultimo spin del cliente, N impostato dall'admin, default 7, 0 = sempre) è scaduto, estrae un premio pesato tra quelli in `prizes` (`src/services/weightedDraw.ts`), lo registra in `spins` e lo restituisce. Altrimenti risponde `429` con `next_spin_at`. Risponde `500` se nessun premio è configurato |
 
-**Provare la ruota senza aspettare 7 giorni (solo sviluppo)**: in `.dev.vars` imposta `SPIN_COOLDOWN_DISABLED=true` e riavvia (`npm run dev`): il cooldown viene ignorato e `can_spin` resta sempre `true`. È già nel `.dev.vars.example`. Non va mai impostata in produzione: non è in `wrangler.jsonc` e non deve diventare un secret. Ogni spin scrive solo una riga in `spins`, non assegna punti né sconti, quindi i giri di prova non si accumulano in nessun saldo.
+**Ogni quanti giorni si gira**: lo decide la titolare dall'admin (`GET`/`PUT /admin/wheel-settings`, `{ "spin_cooldown_days": 7 }`), salvato nella tabella a riga unica `wheel_settings`. Con **0** la cliente può girare sempre. Un cambio vale subito per tutte: il prossimo giro si calcola dall'ultimo giro più il nuovo intervallo. È anche il modo per provare la ruota in produzione.
+
+**Provare la ruota senza aspettare (solo sviluppo locale)**: in `.dev.vars` imposta `SPIN_COOLDOWN_DISABLED=true` e riavvia (`npm run dev`): il cooldown viene ignorato e `can_spin` resta sempre `true`. È già nel `.dev.vars.example`. Non va mai impostata in produzione: non è in `wrangler.jsonc` e non deve diventare un secret. Ogni spin scrive solo una riga in `spins`, non assegna punti né sconti, quindi i giri di prova non si accumulano in nessun saldo.
 
 **Premi a punti**: se esce un premio di tipo `points`, i punti vengono accreditati subito nel saldo (riga in `points_log` con motivo "Ruota della fortuna: …", nella stessa batch del giro, `src/services/wheelSpin.ts`) e non finiscono tra i premi da riscattare.
 
 **Premi vinti**: ogni sconto vinto (tipo `discount`) vale **30 giorni** (`src/services/prizeExpiry.ts`) e si può usare una volta sola: la titolare lo segna come usato quando la cliente lo mostra in salone. Non c'è nessuna applicazione automatica di sconti o punti: il riscatto è manuale. Per aggiornare un D1 locale esistente: `ALTER TABLE spins ADD COLUMN redeemed_at TEXT`.
 
-Logica pura testata TDD: `src/services/weightedDraw.ts` (estrazione pesata, incluso test statistico su 10000 estrazioni) e `src/services/spinCooldown.ts` (calcolo cooldown 7 giorni), entrambe in `test/services/`.
+Logica pura testata TDD: `src/services/weightedDraw.ts` (estrazione pesata, incluso test statistico su 10000 estrazioni) e `src/services/spinCooldown.ts` (calcolo cooldown con i giorni impostati dall'admin), entrambe in `test/services/`.
 
 ## Comandi
 
@@ -150,7 +155,7 @@ src/
     notifications.ts           # invio push a un cliente o a tutti, chiama sendPush()
     pushMessages.ts            # titolo, testo e schermata di ogni push (pura)
     weightedDraw.ts             # estrazione pesata di un premio dato un array {weight}
-    spinCooldown.ts              # calcolo cooldown 7 giorni per lo spin
+    spinCooldown.ts              # calcolo cooldown per lo spin (giorni dall'admin, 0 = sempre)
     wheelSpin.ts                  # un giro completo: cooldown, estrazione, registrazione e accredito punti bonus
     loyalty.ts                     # avanzamento verso il prossimo sconto (pura)
     customerLoyalty.ts              # saldo + regola → barra; riscatto sconto

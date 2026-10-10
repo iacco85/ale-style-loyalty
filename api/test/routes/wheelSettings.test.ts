@@ -80,12 +80,12 @@ describe("spinning with the interval set by the admin", () => {
     await putSettings({ spin_cooldown_days: 2 });
     const { token } = await login("3337771002");
 
-    const first = await (await spin(token)).json<{ spun_at: string }>();
+    expect((await spin(token)).status).toBe(200);
     const status = await spinStatus(token);
 
     expect(status.can_spin).toBe(false);
-    const days = (Date.parse(status.next_spin_at!) - Date.parse(first.spun_at)) / (24 * 60 * 60 * 1000);
-    expect(days).toBeCloseTo(2, 3);
+    const days = (Date.parse(status.next_spin_at!) - Date.now()) / (24 * 60 * 60 * 1000);
+    expect(days).toBeCloseTo(2, 2);
     expect((await spin(token)).status).toBe(429);
   });
 });

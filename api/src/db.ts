@@ -287,6 +287,18 @@ export async function getLoyaltyRule(db: D1Database): Promise<LoyaltyRule> {
   return row;
 }
 
+export async function getSpinCooldownDays(db: D1Database): Promise<number> {
+  const row = await db
+    .prepare("SELECT spin_cooldown_days AS days FROM wheel_settings WHERE id = 1")
+    .first<{ days: number }>();
+  if (!row) throw new Error("wheel_settings row missing");
+  return row.days;
+}
+
+export async function setSpinCooldownDays(db: D1Database, days: number): Promise<void> {
+  await db.prepare("UPDATE wheel_settings SET spin_cooldown_days = ? WHERE id = 1").bind(days).run();
+}
+
 export async function setLoyaltyRule(db: D1Database, rule: LoyaltyRule): Promise<void> {
   await db
     .prepare("UPDATE loyalty_settings SET points_per_reward = ?, reward_euros = ? WHERE id = 1")

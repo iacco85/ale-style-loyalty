@@ -61,3 +61,10 @@ CREATE TABLE IF NOT EXISTS loyalty_settings (
   reward_euros INTEGER NOT NULL CHECK (reward_euros > 0)
 );
 INSERT OR IGNORE INTO loyalty_settings (id, points_per_reward, reward_euros) VALUES (1, 100, 5);
+
+-- Ruota: ogni quanti giorni la cliente può girare (0 = sempre). Una sola riga (id = 1), modificabile dall'admin
+CREATE TABLE IF NOT EXISTS wheel_settings (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  spin_cooldown_days INTEGER NOT NULL CHECK (spin_cooldown_days >= 0)
+);
+INSERT OR IGNORE INTO wheel_settings (id, spin_cooldown_days) VALUES (1, 7);

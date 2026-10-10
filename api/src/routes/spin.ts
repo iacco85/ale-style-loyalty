@@ -1,8 +1,7 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { getLastSpunAtForCustomer, listPrizes } from "../db";
+import { listPrizes } from "../db";
 import { authMiddleware } from "../middleware/auth";
-import { getSpinAvailability } from "../services/spinCooldown";
-import { spinForCustomer } from "../services/wheelSpin";
+import { getSpinAvailabilityForCustomer, spinForCustomer } from "../services/wheelSpin";
 import type { Env, Variables } from "../types";
 
 const errorSchema = z.object({ error: z.string() });
@@ -45,7 +44,7 @@ const spinRoute = createRoute({
   tags: ["Wheel"],
   summary: "Gira la ruota della fortuna",
   description:
-    "Server-authoritative: il premio è estratto e registrato qui, il client si limita ad animare il risultato. Consentito una volta ogni 7 giorni per cliente.",
+    "Server-authoritative: il premio è estratto e registrato qui, il client si limita ad animare il risultato. Consentito una volta ogni N giorni per cliente, con N impostato dall'admin (`/admin/wheel-settings`, default 7; 0 = sempre).",
   security: [{ Bearer: [] }],
   middleware: authMiddleware,
   responses: {
@@ -89,8 +88,8 @@ const prizesRoute = createRoute({
 
 const spin = new OpenAPIHono<{ Bindings: Env; Variables: Variables }>();
 
-function availabilityFor(env: Env, lastSpunAt: string | null) {
-  return getSpinAvailability(lastSpunAt, new Date(), { cooldownDisabled: env.SPIN_COOLDOWN_DISABLED === "true" });
+function spinOptions(env: Env) {
+  return { cooldownDisabled: env.SPIN_COOLDOWN_DISABLED === "true" };
 }
 
 spin.openapi(prizesRoute, async (c) => {
@@ -102,16 +101,12 @@ spin.openapi(prizesRoute, async (c) => {
 });
 
 spin.openapi(statusRoute, async (c) => {
-  const customerId = c.get("customerId");
-  const lastSpunAt = await getLastSpunAtForCustomer(c.env.DB, customerId);
-  const availability = availabilityFor(c.env, lastSpunAt);
+  const availability = await getSpinAvailabilityForCustomer(c.env.DB, c.get("customerId"), spinOptions(c.env));
   return c.json({ can_spin: availability.allowed, next_spin_at: availability.nextAvailableAt }, 200);
 });
 
 spin.openapi(spinRoute, async (c) => {
-  const outcome = await spinForCustomer(c.env.DB, c.get("customerId"), {
-    cooldownDisabled: c.env.SPIN_COOLDOWN_DISABLED === "true",
-  });
+  const outcome = await spinForCustomer(c.env.DB, c.get("customerId"), spinOptions(c.env));
 
   if (outcome.status === "cooldown") return c.json({ error: "cooldown_active", next_spin_at: outcome.nextSpinAt }, 429);
   if (outcome.status === "no_prizes") return c.json({ error: "no_prizes_configured" }, 500);
