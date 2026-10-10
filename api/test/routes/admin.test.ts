@@ -1,4 +1,4 @@
-import { SELF } from "cloudflare:test";
+import { SELF, env } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 
 const ADMIN_AUTH = { authorization: "Bearer test-admin-password" };
@@ -182,6 +182,90 @@ describe("admin prizes", () => {
 
   it("returns 404 when updating an unknown prize", async () => {
     const res = await SELF.fetch("https://example.com/admin/prizes/999999", {
+      method: "PUT",
+      headers: { ...ADMIN_AUTH, "content-type": "application/json" },
+      body: JSON.stringify({ label: "X", type: "none", weight: 1 }),
+    });
+    expect(res.status).toBe(404);
+  });
+});
+
+describe("DELETE /admin/prizes/:id", () => {
+  async function createPrize(label: string) {
+    const res = await SELF.fetch("https://example.com/admin/prizes", {
+      method: "POST",
+      headers: { ...ADMIN_AUTH, "content-type": "application/json" },
+      body: JSON.stringify({ label, type: "discount", value: 10, weight: 5 }),
+    });
+    return (await res.json<{ id: number }>()).id;
+  }
+
+  function removePrize(id: number, headers: Record<string, string> = ADMIN_AUTH) {
+    return SELF.fetch(`https://example.com/admin/prizes/${id}`, { method: "DELETE", headers });
+  }
+
+  async function adminPrizeIds() {
+    const list = await (await SELF.fetch("https://example.com/admin/prizes", { headers: ADMIN_AUTH })).json<{ id: number }[]>();
+    return list.map((p) => p.id);
+  }
+
+  async function wheelPrizeIds(token: string) {
+    const res = await SELF.fetch("https://example.com/prizes", { headers: { authorization: `Bearer ${token}` } });
+    return (await res.json<{ id: number }[]>()).map((p) => p.id);
+  }
+
+  it("requires admin auth", async () => {
+    expect((await removePrize(1, {})).status).toBe(401);
+  });
+
+  it("returns 404 for an unknown prize", async () => {
+    expect((await removePrize(999999)).status).toBe(404);
+  });
+
+  it("deletes a prize nobody has won yet", async () => {
+    const id = await createPrize("Mai uscito");
+
+    const res = await removePrize(id);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ result: "deleted" });
+
+    expect(await adminPrizeIds()).not.toContain(id);
+    expect(await env.DB.prepare("SELECT id FROM prizes WHERE id = ?").bind(id).first()).toBeNull();
+  });
+
+  it("deactivates a prize already won, keeping it in the customer's prizes", async () => {
+    const { token, customer } = await login("3339990001", "Vinta");
+    const id = await createPrize("Già vinto");
+    await env.DB.prepare("INSERT INTO spins (customer_id, prize_id) VALUES (?, ?)").bind(customer.id, id).run();
+
+    const res = await removePrize(id);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ result: "deactivated" });
+
+    expect(await adminPrizeIds()).not.toContain(id);
+    expect(await wheelPrizeIds(token)).not.toContain(id);
+    const myPrizes = await (
+      await SELF.fetch("https://example.com/my-prizes", { headers: { authorization: `Bearer ${token}` } })
+    ).json<{ label: string }[]>();
+    expect(myPrizes.map((p) => p.label)).toContain("Già vinto");
+  });
+
+  it("treats a prize already removed as not found", async () => {
+    const { customer } = await login("3339990002", "Doppia");
+    const id = await createPrize("Rimosso due volte");
+    await env.DB.prepare("INSERT INTO spins (customer_id, prize_id) VALUES (?, ?)").bind(customer.id, id).run();
+
+    await removePrize(id);
+    expect((await removePrize(id)).status).toBe(404);
+  });
+
+  it("does not let a removed prize be edited", async () => {
+    const { customer } = await login("3339990003", "Modifica");
+    const id = await createPrize("Non modificabile");
+    await env.DB.prepare("INSERT INTO spins (customer_id, prize_id) VALUES (?, ?)").bind(customer.id, id).run();
+    await removePrize(id);
+
+    const res = await SELF.fetch(`https://example.com/admin/prizes/${id}`, {
       method: "PUT",
       headers: { ...ADMIN_AUTH, "content-type": "application/json" },
       body: JSON.stringify({ label: "X", type: "none", weight: 1 }),

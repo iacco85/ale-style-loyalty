@@ -31,6 +31,28 @@ async function balanceOf(token: string) {
   return (await res.json<{ points: number }>()).points;
 }
 
+describe("POST /spin — removed prizes", () => {
+  it("never draws a prize removed by the admin", async () => {
+    await onlyPrize("discount", 15, "Rimosso");
+    const { token, customer } = await login("3338880010");
+    // peso altissimo: se il premio rimosso restasse nell'estrazione uscirebbe quasi sempre
+    const removed = await env.DB.prepare("UPDATE prizes SET weight = 100000 RETURNING id").first<{ id: number }>();
+    // un giro già vinto fa sì che il premio venga disattivato e non cancellato
+    await env.DB.prepare("INSERT INTO spins (customer_id, prize_id, spun_at) VALUES (?, ?, '2000-01-01 00:00:00')")
+      .bind(customer.id, removed!.id)
+      .run();
+    await SELF.fetch(`https://example.com/admin/prizes/${removed!.id}`, { method: "DELETE", headers: ADMIN_AUTH });
+    await SELF.fetch("https://example.com/admin/prizes", {
+      method: "POST",
+      headers: { ...ADMIN_AUTH, "content-type": "application/json" },
+      body: JSON.stringify({ label: "Rimasto", type: "none", weight: 1 }),
+    });
+
+    const res = await spin(token);
+    expect((await res.json<{ prize: { label: string } }>()).prize.label).toBe("Rimasto");
+  });
+});
+
 describe("POST /spin — points prizes", () => {
   it("credits the points to the balance as soon as the prize is won", async () => {
     await onlyPrize("points", 10, "+10 punti");
