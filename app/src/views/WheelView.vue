@@ -7,7 +7,7 @@ import { formatDateTime } from "../formatDate";
 const { prizes, slices, status, rotation, spinning, result, canSpin, error, spin } = useWheel();
 
 const resultMessages = {
-  none: "Questa volta niente, riprova la prossima settimana!",
+  none: "Questa volta niente, ritenta al prossimo giro!",
   discount: "Hai vinto!",
   points: "Hai vinto dei punti! Sono già nel tuo saldo",
 };

@@ -45,7 +45,7 @@ async function toggleBiometricLock(event: Event) {
 
   <RouterLink :to="{ name: 'wheel' }" class="card link">
     <strong>Ruota della fortuna</strong>
-    <span class="muted">Un giro a settimana, prova a vincere un premio</span>
+    <span class="muted">Gira la ruota e prova a vincere un premio</span>
   </RouterLink>
 
   <RouterLink :to="{ name: 'offers' }" class="card link">

@@ -1,6 +1,6 @@
 # ale-style-app
 
-App Android della cliente (Capacitor + Vue 3 + TypeScript): tessera con saldo punti, offerte, ruota della fortuna settimanale e notifiche push. Parla solo con l'API in [../api](../api/README.md) (nessun SDK di terzi). Contesto in [../README.md](../README.md) e [../PLAN.md](../PLAN.md).
+App Android della cliente (Capacitor + Vue 3 + TypeScript): tessera con saldo punti, offerte, ruota della fortuna (ogni quanti giorni si gira lo decide la titolare dall'admin) e notifiche push. Parla solo con l'API in [../api](../api/README.md) (nessun SDK di terzi). Contesto in [../README.md](../README.md) e [../PLAN.md](../PLAN.md).
 
 Stato: provata su tablet Android (Galaxy Tab A7, Android 12) il 10 ottobre 2026: login, sezioni, ruota, tasto indietro e prima push reale. Manca la prova dello sblocco biometrico su un telefono con impronta.
 
