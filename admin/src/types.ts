@@ -44,6 +44,11 @@ export interface LoyaltyRule {
   reward_euros: number;
 }
 
+export interface WheelSettings {
+  /** 0 = la cliente può girare sempre */
+  spin_cooldown_days: number;
+}
+
 export interface LoyaltySnapshot extends LoyaltyRule {
   points: number;
   rewards_available: number;

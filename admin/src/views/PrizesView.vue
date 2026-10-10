@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { createPrize, listPrizes, removePrize, updatePrize } from "../api";
+import WheelSettingsForm from "../components/WheelSettingsForm.vue";
 import { useAsyncAction } from "../composables/useAsyncAction";
 import { chancePercent, draftChancePercent } from "../prizeChance";
 import type { Prize, PrizeInput, PrizeType } from "../types";
@@ -73,6 +74,8 @@ load();
     Ogni premio ha un peso: più è alto, più il premio esce spesso. La percentuale accanto a ogni premio è la probabilità
     che esca a ogni giro.
   </p>
+  <WheelSettingsForm />
+
   <p v-if="error" class="error">{{ error }}</p>
 
   <ul class="list">

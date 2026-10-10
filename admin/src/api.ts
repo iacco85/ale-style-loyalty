@@ -1,6 +1,16 @@
 import { currentPassword, useAuth } from "./composables/useAuth";
 import { ApiError, apiFetch } from "./http";
-import type { CustomerWithPoints, LoyaltyRedemption, LoyaltyRule, LoyaltySnapshot, OfferInput, Prize, PrizeInput, WonPrize } from "./types";
+import type {
+  CustomerWithPoints,
+  LoyaltyRedemption,
+  LoyaltyRule,
+  LoyaltySnapshot,
+  OfferInput,
+  Prize,
+  PrizeInput,
+  WheelSettings,
+  WonPrize,
+} from "./types";
 
 async function authorized<T>(path: string, method?: "GET" | "POST" | "PUT" | "DELETE", body?: unknown): Promise<T> {
   try {
@@ -74,4 +84,12 @@ export function updatePrize(id: number, prize: PrizeInput): Promise<Prize> {
 
 export function removePrize(id: number): Promise<{ result: "deleted" | "deactivated" }> {
   return authorized(`/admin/prizes/${id}`, "DELETE");
+}
+
+export function getWheelSettings(): Promise<WheelSettings> {
+  return authorized("/admin/wheel-settings");
+}
+
+export function setWheelSettings(settings: WheelSettings): Promise<WheelSettings> {
+  return authorized("/admin/wheel-settings", "PUT", settings);
 }
