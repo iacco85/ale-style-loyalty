@@ -98,13 +98,13 @@ ale-style-admin/                 # Vue (web), pannello per la sorella
 Stato aggiornato a ottobre 2026 (✅ fatto e verificato · 🟡 fatto in parte · ⬜ da fare):
 
 1. ✅ **Backend**: Worker + D1 con schema completo (`customers`, `points_log`, `offers`, `device_tokens`, `prizes`, `spins`, più `loyalty_settings`), endpoint cliente (`/login`, `/me`, `/offers`, `/device-token`) con test su D1 reale.
-2. 🟡 **Firebase / push**: `push.ts` implementato (JWT del service account + API HTTP v1). Progetto Firebase `ale-style-loyalty` creato, app Android `it.alestyle.loyalty` registrata, segreti `FCM_*` caricati sul Worker. **Manca** una prova reale su telefono.
+2. ✅ **Firebase / push**: `push.ts` implementato (JWT del service account + API HTTP v1). Progetto Firebase `ale-style-loyalty` creato, app Android `it.alestyle.loyalty` registrata, segreti `FCM_*` caricati sul Worker. Provata il 10 ottobre 2026 sul tablet: offerta dall'admin → notifica ricevuta ad app chiusa.
 3. ✅ **Endpoint admin** protetti da password condivisa: clienti, punti, offerte singole e broadcast, premi, più reset PIN, regola fedeltà, premi vinti e riscatti.
 4. ✅ **Ruota**: `POST /spin`, `GET /spin/status`, `GET /prizes`, estrazione pesata e cooldown di 7 giorni lato server (interruttore solo-sviluppo per disattivarlo).
 5. 🟡 **App mobile**: tutte le schermate funzionano e sono provate nel browser; piattaforma Android generata con `cap add android`. **Mai compilata** per Android (serve Android Studio) né provata su telefono.
 6. ✅ **Admin web**: clienti, dettaglio (punti, fedeltà, premi vinti, offerte, reset PIN), offerta a tutti, premi della ruota, regola fedeltà.
 7. ✅ **Deploy**: Worker (`api.alestyle.it`, anche `ale-style-api.iacco85.workers.dev`), D1 remoto con schema, segreti `AUTH_SECRET` e `ADMIN_PASSWORD`, admin su Pages (`ale-style-admin.pages.dev`) provato con login. Dominio `admin.alestyle.it` attivo su Pages (record DNS su Cloudflare). Segreti `FCM_*` caricati.
-8. ⬜ **Prova su telefono reale**: `cap sync`, Android Studio, debug USB; verificare push, sblocco biometrico e splash nativo. **Android Studio non è ancora installato** (il PC di lavoro non è adatto: si riparte da un altro computer, vedi sotto).
+8. 🟡 **Prova su dispositivo reale**: 10 ottobre 2026, su tablet Samsung Galaxy Tab A7 (SM-T500, Android 12) via debug USB. Compilazione e installazione ok, registrazione, login, logout e nuovo login col solo PIN ok, permesso notifiche concesso e token FCM ottenuto. Prima **push vera ricevuta** (offerta creata dall'admin con l'app chiusa). **Mancano**: sblocco biometrico (il tablet non ha impronta né volto utilizzabile: va provato su un telefono). Su Windows `npx cap run android` fallisce ("gradlew non riconosciuto"): per ora si compila con `.\gradlew.bat installDebug` in `app/android`.
 
 ## Decisioni prese dopo il piano iniziale
 
@@ -124,6 +124,8 @@ Segnalato provando l'app: dalla sezione Ruota non si riusciva a tornare indietro
 
 **Da verificare prima di intervenire**: in una seconda prova la barra in basso era visibile e quindi permetteva di cambiare sezione; la prima volta non si vedeva e non si riusciva a lasciare la Ruota. Non sappiamo perché (finestra del browser troppo bassa o di dimensioni particolari, caricamento non terminato, o un difetto della barra fissa). Va riprodotto e capito: controllare la barra a diverse altezze di schermo, anche con la tastiera aperta e con la barra di sistema di Android (`safe-area`), e solo dopo decidere se è un difetto o serve solo la gestione del tasto indietro qui sotto.
 
+**Verificato sul tablet (10 ottobre 2026)**: barra in basso sempre visibile, tasto indietro di Android funzionante e ruota che gira (poi bloccata dal cooldown settimanale, come previsto). Il difetto visto nel browser non si ripresenta sul dispositivo, quindi i punti qui sotto sono rifiniture e non hanno urgenza.
+
 Cosa va deciso e fatto:
 
 - **Tasto/gesto indietro di Android** gestito esplicitamente (`@capacitor/app`, evento `backButton`): da una sezione diversa dalla Home riporta alla **Home**; dalla Home chiude l'app (non torna al login né a pagine precedenti). Non deve mai riportare allo splash o al login quando si è già dentro.
@@ -132,6 +134,50 @@ Cosa va deciso e fatto:
 - **Durante il giro della ruota** "indietro" va ignorato fino a fine animazione, per non perdere il risultato mostrato.
 - **Con il blocco biometrico attivo** "indietro" non deve aggirare la schermata di blocco.
 - **Prova su telefono** del comportamento, perché nel browser il tasto indietro è quello del browser e non quello di Android.
+
+## Difetti emersi dalla prova sul tablet (10 ottobre 2026)
+
+- **La ruota non si aggiorna da sola**: `useWheel` legge premi e stato del giro solo all'apertura della schermata; un premio aggiunto o modificato dall'admin compare solo uscendo e rientrando nella Ruota. Va collegata allo stesso aggiornamento automatico di tessera, offerte e premi (`useAutoRefresh`), ma **mai durante l'animazione del giro**, altrimenti gli spicchi cambiano sotto la ruota che gira.
+- **Nell'admin non si possono eliminare i premi della ruota**: manca sia il pulsante sia l'endpoint. Un premio già vinto è citato da `spins` e da "I tuoi premi", quindi non si cancella davvero: va **disattivato** (colonna `active`, migrazione D1), sparisce dalla ruota e dall'estrazione ma resta nello storico. Si può cancellare per davvero solo un premio mai uscito. Serve una conferma prima di eliminare. L'estrazione pesata (TDD) deve ignorare i premi disattivati.
+- **Il campo "peso" non è chiaro**: è un numero senza etichetta, "Peso" è solo il testo segnaposto che sparisce quando si scrive, e la probabilità si vede solo dopo aver salvato. Da rendere comprensibile per la titolare: etichetta visibile con una spiegazione breve, e **anteprima della probabilità in percentuale mentre si modifica** (calcolata sul totale con il nuovo valore). Valutare un selettore a livelli (es. "raro / medio / frequente") al posto del numero libero.
+
+- **Dalla notifica non si capisce quale app l'ha mandata**: la prima push vera è arrivata (offerta creata dall'admin, app chiusa), ma l'app ha ancora l'**icona predefinita di Capacitor** (la X blu) e nessuna icona dedicata alle notifiche, quindi Android ne mostra solo la sagoma. Da fare: icona dell'app col logo Ale Style (generata dal logo con `@capacitor/assets` per tutte le densità e per l'icona adattiva) e un'**icona per le notifiche** bianca su sfondo trasparente, collegata nel manifest (`com.google.firebase.messaging.default_notification_icon`), con il colore oro del tema (`default_notification_color`).
+- **Toccando la notifica l'app si apre sulla Home**: deve aprire la sezione giusta, per le offerte **Offerte**. La push porta nei `data` la destinazione (es. `route: "/offers"`), decisa dal Worker in `notifications.ts`, e l'app ascolta `pushNotificationActionPerformed` in `usePush` e naviga lì. Deve funzionare anche ad app chiusa (avvio a freddo: navigare dopo login o sblocco, non prima) e servirà anche per le push sui punti (→ Tessera).
+
+## Icona dell'app e notifiche personalizzate (da fare)
+
+Richiesta dopo la prima push sul tablet, completa i due punti sopra su icona e apertura della sezione giusta:
+
+- **Icona dell'app** col logo Ale Style, nero e oro, al posto di quella di Capacitor: icona adattiva (sfondo + logo) e icona tonda, generate per tutte le densità con `@capacitor/assets`, partendo da un logo quadrato ad alta risoluzione. Va verificata anche nel cassetto delle app e nella schermata delle app recenti.
+- **Notifiche riconoscibili come Ale Style**:
+  - piccola icona bianca nella barra di stato;
+  - colore oro;
+  - nome dell'app nell'intestazione;
+  - canale di notifica con un nome comprensibile nelle impostazioni Android (es. "Offerte e punti", poi "Appuntamenti"), così la cliente può disattivarne solo alcuni.
+- **Titolo e testo** scritti dal Worker per ogni tipo di evento (offerta, punti, appuntamento), con la destinazione nei `data` per aprire la sezione giusta.
+- Da valutare: logo grande a destra nella notifica, suono personalizzato.
+
+## Gestione appuntamenti (da progettare)
+
+Richiesta dell'utente: è una funzionalità nuova e più grande delle altre, va progettata prima di scriverla. Idea di partenza:
+
+- **Calendario nell'admin**:
+  - vista per giorno e per settimana degli appuntamenti del salone;
+  - creare, spostare e annullare un appuntamento scegliendo cliente, data, ora, durata e servizio.
+- **Notifica alla cliente**: quando l'appuntamento è creato o spostato, arriva una push. Toccandola si apre la nuova sezione **Appuntamenti** dell'app (prossimi appuntamenti e storico).
+- **Aggiunta al calendario del telefono**: dall'app, pulsante "Aggiungi al calendario" che apre l'app calendario di Android con l'evento già compilato (intent `ACTION_INSERT` di `CalendarContract`, tramite un plugin Capacitor; in alternativa un file `.ics`). Così non servono permessi di lettura/scrittura sul calendario.
+- **Dati**: nuova tabella D1 `appointments` (cliente, inizio, durata, servizio, note, stato: confermato / annullato / completato), con migrazione e indice su cliente e data. Le regole (sovrapposizioni, orari di apertura, chi può spostare cosa) vanno scritte in TDD.
+- **Collegamenti con il resto**:
+  - segnare l'appuntamento come "completato" può proporre l'aggiunta dei punti;
+  - si appoggia alla regola "un solo sconto per appuntamento", se la faremo;
+  - si può aggiungere un promemoria il giorno prima con un cron del Worker.
+
+**Da decidere prima di progettare**:
+1. "Confermare l'appuntamento" significa avvisare la cliente che è confermato, oppure chiederle di confermare la presenza con un pulsante "Confermo / Non posso venire"?
+2. Gli appuntamenti li crea solo la titolare, o un domani la cliente può anche prenotare dall'app?
+3. La titolare oggi usa già un'agenda (carta, Google Calendar, un'app del salone)? Se sì, va capito se sostituirla o sincronizzarla.
+4. Servizi e durate: elenco fisso configurabile dall'admin o testo libero?
+5. Le clienti che non hanno l'app: si registra solo il nome, senza notifica?
 
 ## Come procediamo con le configurazioni
 
@@ -173,12 +219,21 @@ Oggi il deploy è manuale da terminale: `npm run deploy` in `api/`, e `npm run b
 
 ## Prossimi passi
 
-1. **Prova su telefono** (passo 8): installare Android Studio sul nuovo PC e compilare l'app. Sblocca anche la verifica delle push.
-2. **Deploy automatico** di API e admin col push su GitHub (sezione sopra).
-3. **Navigazione dell'app** (sezione sopra): tasto indietro di Android, cronologia pulita, pulsanti indietro nelle schermate secondarie.
-4. **Notifiche push** sugli eventi utili: punti aggiunti, sconto sbloccato (e, in futuro, premio in scadenza). Toccandole l'app si apre sulla pagina giusta; l'aggiornamento automatico resta la fonte affidabile dei dati, la push è solo un avviso.
-5. **Regole più strette sugli sconti** se servono (un solo sconto per appuntamento, scadenza degli sconti fedeltà).
-6. Poi la **Fase 2** qui sotto.
+1. **Prova su dispositivo** (passo 8): fatta sul tablet, push compresa; la biometria va provata su un telefono.
+2. **Difetti emersi dalla prova sul tablet** (sezione sopra): ruota che si aggiorna da sola, eliminazione dei premi, campo peso comprensibile, notifica che apre la sezione giusta.
+3. **Icona dell'app e notifiche personalizzate** (sezione sopra).
+4. **Deploy automatico** di API e admin col push su GitHub (sezione sopra).
+5. **Navigazione dell'app** (sezione sopra): tasto indietro di Android, cronologia pulita, pulsanti indietro nelle schermate secondarie.
+6. **Notifiche push** sugli eventi utili: punti aggiunti, sconto sbloccato (e, in futuro, premio in scadenza). Toccandole l'app si apre sulla pagina giusta; l'aggiornamento automatico resta la fonte affidabile dei dati, la push è solo un avviso. **Prima da fare: push quando l'admin aggiunge punti** (richiesta dopo la prova sul tablet). Oggi `POST /admin/customers/:id/points` registra solo i punti. Come farla:
+   - Solo per `delta` positivo: niente push quando si tolgono punti a mano né per i punti vinti alla ruota (lì la cliente è già nell'app). "Usa sconto" ha la sua notifica (punto sotto).
+   - **Push anche quando si usa uno sconto o un premio** (deciso dall'utente): quando la titolare preme "Usa sconto" (sconti fedeltà) o segna come usato un premio vinto alla ruota, la cliente riceve una conferma, es. "Hai usato uno sconto di 5 €, ti restano 40 punti" oppure "Hai usato il premio «-15% prossimo servizio»". Fa da ricevuta: se lo sconto è stato scalato per errore o alla cliente sbagliata, se ne accorge subito. Toccandola si apre la Tessera o I tuoi premi. Testi costruiti da funzioni pure scritte in TDD, come per i punti.
+   - Testo costruito da una funzione pura scritta in TDD, che riceve i punti aggiunti e lo stato fedeltà prima e dopo (`getCustomerLoyalty`). Esempio: titolo "Hai ricevuto 10 punti", testo "Ora hai 60 punti: ne mancano 40 per il prossimo sconto di 5 €". Se l'aggiunta sblocca uno sconto: "Hai sbloccato uno sconto di 5 €!". Così copre anche la push "sconto sbloccato".
+   - Nel servizio, la registrazione dei punti restituisce lo stato prima e dopo. In `notifications.ts` la funzione generica per singolo cliente (oggi `notifyCustomerOffer`) va rinominata `notifyCustomer`.
+   - Invio con `waitUntil`, così il pannello risponde subito anche se FCM è lento. L'invio resta best-effort come per le offerte.
+   - Aggiornare il README di `api/` (endpoint punti e `notifications.ts`).
+7. **Gestione appuntamenti** (sezione sopra): prima rispondere alle domande aperte, poi progettare; calendario nell'admin, push di conferma, aggiunta al calendario del telefono.
+8. **Regole più strette sugli sconti** se servono (un solo sconto per appuntamento, scadenza degli sconti fedeltà).
+9. Poi la **Fase 2** qui sotto.
 
 ## Backlog — Fase 2 (dopo il pilot base)
 
